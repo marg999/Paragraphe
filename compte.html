@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr" data-theme="soir">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Mon compte · Paragraphe</title>
+    <meta name="description" content="Ton carnet de lecture privé : note, commente, retrouve chaque livre lu.">
+    <meta name="theme-color" content="#1C283D">
+    <meta name="robots" content="noindex">
+    <script>
+      // Thème choisi (Soir par défaut), appliqué avant l'affichage pour éviter un flash.
+      try { document.documentElement.dataset.theme = localStorage.getItem('paragraphe-theme') === 'jour' ? 'jour' : 'soir'; } catch (e) {}
+      // Retour d'un lien reçu par e-mail : on note son type avant que Supabase ne nettoie l'adresse.
+      window.lienEmail = { recuperation: /type=recovery/.test(location.hash), erreur: /error_code=/.test(location.hash + location.search) };
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="manifest" href="site.webmanifest">
+  </head>
+  <body>
+    <a class="evitement" href="#contenu">Aller au contenu</a>
+    <header class="entete" id="entete"><div class="conteneur barre"></div></header>
+    <main id="contenu">
+      <p class="chargement conteneur" role="status">Chargement…</p>
+    </main>
+    <footer class="pied" id="pied"></footer>
+    <script type="module" src="compte.js"></script>
+  </body>
+</html>
