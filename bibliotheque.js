@@ -1,6 +1,6 @@
 // Page d'accueil : présentation si on n'est pas connecté, bibliothèque sinon.
 import {
-  demarrer, sb, esc, nombre, pluriel, dateFr, jours, icone, symbole, couverture, etoiles, pastille, composition,
+  demarrer, sb, esc, sourceCouverture, nombre, pluriel, dateFr, jours, icone, symbole, couverture, etoiles, pastille, composition,
   STATUTS, NOMS_GENRES, lusEn, genrePrefere, raisonRecommandation, recommander, normaliser, couleurAuHasard, toast, aller,
 } from './app.js';
 
@@ -240,7 +240,7 @@ async function bibliotheque() {
       return;
     }
     box.innerHTML = `<div class="contenu">
-      ${couverture(livre.couvertureId, 'nuit', livre.titre)}
+      ${couverture(sourceCouverture(livre), 'nuit', livre.titre)}
       <div class="texte">
         <p class="etiquette">${esc(raison)}</p>
         <p class="titre-livre">${esc(livre.titre)}</p>
@@ -285,7 +285,7 @@ function carteLivre(l) {
     : l.statut === 'abandonne' && l.fin ? `Arrêté le ${dateFr(l.fin)}`
     : '';
   return `<a class="livre" href="lecture.html?id=${encodeURIComponent(l.id)}">
-    ${couverture(l.couverture_id, l.couleur, l.titre)}
+    ${couverture(sourceCouverture(l), l.couleur, l.titre)}
     <div class="livre-meta">
       ${pastille(l.statut)}
       <span class="livre-titre">${esc(l.titre)}</span>

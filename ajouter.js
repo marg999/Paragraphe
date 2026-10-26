@@ -1,6 +1,6 @@
 // Ajouter une lecture (ajouter.html) ou la modifier (ajouter.html?id=…, avec &terminer=1 pour « Terminer et noter »).
 import {
-  demarrer, sb, esc, nombre, jours, icone, couverture, surligner, aujourdhui, parametre, aller, toast,
+  demarrer, sb, esc, sourceCouverture, nombre, jours, icone, couverture, surligner, aujourdhui, parametre, aller, toast,
   STATUTS, CRITERES, NOMS_GENRES, lireFormulaire, rechercherLivres,
 } from './app.js';
 
@@ -56,7 +56,7 @@ function afficherFormulaire(v, erreurs) {
       <button type="button" class="btn btn-lien btn-manuel" data-vers="manuel"${etat !== 'recherche' ? ' hidden' : ''}>Livre introuvable ? Ajouter manuellement</button>
 
       <div class="carte choisi"${etat !== 'choisi' ? ' hidden' : ''}>
-        <div class="choisi-couv" data-choisi-couv>${couverture(v.couverture_id, v.couleur ?? 'caput', v.titre, 'S')}</div>
+        <div class="choisi-couv" data-choisi-couv>${couverture(sourceCouverture(v), v.couleur ?? 'caput', v.titre, 'S')}</div>
         <div class="choisi-texte">
           <p class="titre-livre" data-choisi-titre>${esc(v.titre)}</p>
           <p class="petit" data-choisi-meta>${esc([v.auteur, v.annee, v.pages ? `${nombre(v.pages)} pages` : null].filter(Boolean).join(' · '))}</p>
@@ -173,7 +173,7 @@ function brancher(form) {
     }),
   );
 
-  // ---- Recherche Open Library ----
+  // ---- Recherche de livres (Open Library + Google Books) ----
   function fermer() {
     liste.hidden = true;
     recherche.setAttribute('aria-expanded', 'false');
@@ -185,8 +185,8 @@ function brancher(form) {
       ? resultats
           .map(
             (r, i) => `<button type="button" class="sug" role="option" id="sug-${i}" data-i="${i}" aria-selected="false">
-              ${couverture(r.couvertureId, ['caput', 'slate', 'coffee', 'nuit', 'tan'][i % 5], '', 'S')}
-              <span><b>${surligner(r.titre, q)}</b><span class="petit">${surligner(r.auteur, q)}${r.annee ? ` · ${r.annee}` : ''}</span></span>
+              ${couverture(sourceCouverture(r), ['caput', 'slate', 'coffee', 'nuit', 'tan'][i % 5], '', 'S')}
+              <span><b>${surligner(r.titre, q)}</b><span class="petit">${surligner(r.auteur, q)}${r.annee ? ` · ${r.annee}` : ''}<span class="source"> · ${r.source}</span></span></span>
             </button>`,
           )
           .join('')
@@ -255,7 +255,7 @@ function brancher(form) {
     if (r.genre && !champ('genre').value) champ('genre').value = r.genre;
     $('[data-choisi-titre]').textContent = r.titre;
     $('[data-choisi-meta]').textContent = [r.auteur, r.annee, r.pages ? `${nombre(r.pages)} pages` : null].filter(Boolean).join(' · ');
-    $('[data-choisi-couv]').innerHTML = couverture(r.couvertureId, champ('couleur').value || 'caput', r.titre, 'M');
+    $('[data-choisi-couv]').innerHTML = couverture(sourceCouverture(r), champ('couleur').value || 'caput', r.titre, 'M');
     fermer();
     afficher('choisi');
     etatRecherche.textContent = '';

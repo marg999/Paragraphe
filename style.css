@@ -1068,3 +1068,4 @@ input[aria-invalid='true'] {
 .entete:empty, .entete .barre:empty { min-height: 69px; }
 .alerte-vide { padding-block: var(--espace-12); }
 .biblio #liste { display: grid; gap: var(--espace-8); }
+.form-lecture .suggestions .source { opacity: 0.8; }

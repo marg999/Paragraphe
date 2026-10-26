@@ -1,6 +1,6 @@
 // =============================================================================
 //  Paragraphe · code commun à toutes les pages
-//  (connexion à Supabase, en-tête, outils de mise en forme, Open Library, bilans)
+//  (connexion à Supabase, en-tête, outils de mise en forme, recherche de livres, bilans)
 // =============================================================================
 import { createClient } from './supabase.js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
@@ -105,12 +105,34 @@ export function logo(hauteur = 30) {
 export const symbole = (classe = '') =>
   `<svg class="${classe}" viewBox="${SYMBOLE_VIEWBOX}" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="${SYMBOLE}"/></svg>`;
 
-export const urlCouverture = (id, taille = 'M') => (id ? `https://covers.openlibrary.org/b/id/${Number(id)}-${taille}.jpg` : null);
+/**
+ * Adresse de la couverture :
+ * - un nombre = couverture Open Library ;
+ * - « gb:ID » = livre Google Books ;
+ * - autre chose (ou rien) = pas de couverture, on affiche la couverture aux couleurs de Paragraphe.
+ */
+export function urlCouverture(id, taille = 'M') {
+  if (typeof id === 'string' && id.startsWith('gb:')) {
+    const zoom = taille === 'L' ? 2 : 1;
+    return `https://books.google.com/books/content?id=${encodeURIComponent(id.slice(3))}&printsec=frontcover&img=1&zoom=${zoom}`;
+  }
+  const n = Number(id);
+  return id && Number.isFinite(n) && n > 0 ? `https://covers.openlibrary.org/b/id/${n}-${taille}.jpg` : null;
+}
+/** Couverture d'un livre enregistré : Open Library si on a son numéro, sinon Google Books si le livre en vient. */
+export const sourceCouverture = (l) => l?.couverture_id ?? l?.couvertureId ?? l?.ol_key ?? l?.olKey ?? null;
+/** Lien vers la fiche du livre sur sa source. */
+export function lienSource(cle) {
+  if (!cle) return null;
+  if (cle.startsWith('gb:')) return { url: `https://books.google.com/books?id=${encodeURIComponent(cle.slice(3))}`, nom: 'Google Books' };
+  if (cle.startsWith('/works/')) return { url: `https://openlibrary.org${cle}`, nom: 'Open Library' };
+  return null;
+}
 export function couverture(id, couleur = 'caput', titre = '', taille = 'M') {
   const c = COULEURS.includes(couleur) ? couleur : 'caput';
   const src = urlCouverture(id, taille);
   const img = src
-    ? `<img src="${src}" alt="${titre ? `Couverture de ${esc(titre)}` : ''}" loading="lazy" decoding="async" onerror="this.remove()">`
+    ? `<img src="${src}" alt="${titre ? `Couverture de ${esc(titre)}` : ''}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" onload="if(this.naturalWidth<10)this.remove()">`
     : '';
   return `<div class="couv c-${c}"><span class="dos" aria-hidden="true"></span>${symbole('couv-symb')}${img}</div>`;
 }
@@ -261,7 +283,7 @@ function entete(user, actif) {
     <div class="conteneur pied-contenu">
       ${logo(18)}
       <span>Ton carnet de lecture privé : note, commente, retrouve chaque livre lu.</span>
-      <span>Recherche de livres grâce à <a href="https://openlibrary.org" rel="noopener">Open Library</a> · <a href="confidentialite.html">Confidentialité</a></span>
+      <span>Recherche de livres grâce à <a href="https://openlibrary.org" rel="noopener">Open Library</a> et <a href="https://books.google.com" rel="noopener">Google Books</a> · <a href="confidentialite.html">Confidentialité</a></span>
     </div>`;
 }
 
@@ -296,7 +318,77 @@ async function interroger(params, signal) {
   const json = await rep.json();
   return (json.docs ?? []).map(versLivre).filter(Boolean);
 }
-export const rechercherLivres = (texte, signal) => interroger({ q: texte, limit: '8' }, signal);
+// ---------------------------------------------------------------- Google Books
+async function rechercherGoogle(texte, signal) {
+  const params = new URLSearchParams({
+    q: texte,
+    maxResults: '12',
+    printType: 'books',
+    fields: 'items(id,volumeInfo(title,subtitle,authors,publishedDate,pageCount,categories,imageLinks/thumbnail))',
+  });
+  const rep = await fetch(`https://www.googleapis.com/books/v1/volumes?${params}`, { signal: signal ?? AbortSignal.timeout(8000) });
+  if (!rep.ok) throw new Error(`Google Books a répondu ${rep.status}`);
+  const json = await rep.json();
+  return (json.items ?? [])
+    .map((it) => {
+      const v = it.volumeInfo ?? {};
+      if (!v.title || !it.id) return null;
+      const annee = Number.parseInt(String(v.publishedDate ?? '').slice(0, 4), 10);
+      return {
+        olKey: `gb:${it.id}`,
+        titre: (v.subtitle && v.title.length + v.subtitle.length < 90 ? `${v.title} : ${v.subtitle}` : v.title).slice(0, 300),
+        auteur: (v.authors?.slice(0, 2).join(', ') || 'Auteur inconnu').slice(0, 300),
+        annee: Number.isFinite(annee) ? annee : null,
+        pages: v.pageCount > 0 ? v.pageCount : null,
+        couvertureId: null,
+        aCouverture: Boolean(v.imageLinks?.thumbnail),
+        genre: devinerGenre(v.categories),
+        source: 'Google Books',
+      };
+    })
+    .filter(Boolean);
+}
+
+/** Clé servant à repérer un même livre dans les deux sources. */
+const empreinte = (l) => `${normaliser(l.titre).replace(/^(le|la|les|l|un|une|the) /, '').slice(0, 40)}|${normaliser(l.auteur).split(' ').pop()}`;
+
+/**
+ * Recherche par titre ou auteur dans Open Library ET Google Books, en même temps.
+ * Les résultats sont mélangés (un de chaque à tour de rôle) et les doublons retirés.
+ * La recherche n’échoue que si les deux sources sont injoignables.
+ */
+export async function rechercherLivres(texte, signal) {
+  const [ol, gb] = await Promise.allSettled([interroger({ q: texte, limit: '8' }, signal), rechercherGoogle(texte, signal)]);
+  if (ol.status === 'rejected' && gb.status === 'rejected') throw ol.reason;
+  const a = ol.status === 'fulfilled' ? ol.value.map((l) => ({ ...l, source: 'Open Library' })) : [];
+  const b = gb.status === 'fulfilled' ? gb.value : [];
+  const vus = new Set();
+  const resultat = [];
+  for (let i = 0; i < Math.max(a.length, b.length) && resultat.length < 12; i++) {
+    for (const livre of [a[i], b[i]]) {
+      if (!livre) continue;
+      const cle = empreinte(livre);
+      if (vus.has(cle)) {
+        // Même livre déjà listé : on complète les informations manquantes.
+        const i2 = resultat.findIndex((r) => empreinte(r) === cle);
+        const deja = resultat[i2];
+        const sansCouv = (r) => !r.couvertureId && !r.aCouverture;
+        if (deja && sansCouv(deja) && !sansCouv(livre)) {
+          // On garde la version qui a une couverture.
+          resultat[i2] = { ...livre, pages: livre.pages ?? deja.pages, annee: livre.annee ?? deja.annee, genre: livre.genre ?? deja.genre };
+        } else if (deja) {
+          deja.pages ??= livre.pages;
+          deja.annee ??= livre.annee;
+          deja.genre ??= livre.genre;
+        }
+        continue;
+      }
+      vus.add(cle);
+      resultat.push(livre);
+    }
+  }
+  return resultat.slice(0, 12);
+}
 
 export async function recommander(genre, exclusCles, exclusTitres) {
   const sujet = GENRES.find((g) => g.nom === genre)?.sujet ?? 'classic_literature';

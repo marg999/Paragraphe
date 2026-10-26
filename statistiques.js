@@ -1,5 +1,5 @@
 // Mon année en lecture : statistiques.html?annee=2026
-import { demarrer, sb, esc, nombre, decimal, pluriel, dateFr, couverture, etoiles, parametre, bilan, MOIS_COURTS, CRITERES } from './app.js';
+import { demarrer, sb, esc, sourceCouverture, nombre, decimal, pluriel, dateFr, couverture, etoiles, parametre, bilan, MOIS_COURTS, CRITERES } from './app.js';
 
 await demarrer({ prive: true, actif: 'statistiques' });
 const main = document.getElementById('contenu');
@@ -81,7 +81,7 @@ function rendre(annee, annees) {
           <section class="carte"><h2 class="titre-2">Tes coups de cœur de l’année</h2>
             <ol class="podium">${b.coupsDeCoeur
               .map(
-                (x, i) => `<li><span class="rang">${i + 1}</span>${couverture(x.couverture_id, x.couleur, x.titre, 'S')}
+                (x, i) => `<li><span class="rang">${i + 1}</span>${couverture(sourceCouverture(x), x.couleur, x.titre, 'S')}
                   <a href="lecture.html?id=${encodeURIComponent(x.id)}" class="podium-texte"><span class="titre-livre">${esc(x.titre)}</span>
                   <span class="petit">${esc(x.auteur)} · fini le ${dateFr(x.fin)}</span></a>${etoiles(x.note_generale, 'Note générale')}</li>`,
               )

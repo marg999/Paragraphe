@@ -1,6 +1,6 @@
 // Fiche d'un livre : lecture.html?id=…
 import {
-  demarrer, sb, esc, nombre, pluriel, dateFr, jours, aujourdhui, icone, couverture, etoiles, pastille, parametre, aller, toast, CRITERES,
+  demarrer, sb, esc, sourceCouverture, lienSource, nombre, pluriel, dateFr, jours, aujourdhui, icone, couverture, etoiles, pastille, parametre, aller, toast, CRITERES,
 } from './app.js';
 
 await demarrer({ prive: true, actif: 'bibliotheque' });
@@ -37,8 +37,11 @@ function rendre(erreurRelecture = '') {
     <a class="retour" href="index.html">${icone('retour')}Ma bibliothèque</a>
     <article class="fiche">
       <div class="col-couv">
-        ${couverture(l.couverture_id, l.couleur, l.titre, 'L')}
-        ${l.ol_key ? `<a class="petit" href="https://openlibrary.org${esc(l.ol_key)}" rel="noopener" target="_blank">Voir sur Open Library</a>` : ''}
+        ${couverture(sourceCouverture(l), l.couleur, l.titre, 'L')}
+        ${(() => {
+          const s = lienSource(l.ol_key);
+          return s ? `<a class="petit" href="${esc(s.url)}" rel="noopener" target="_blank">Voir sur ${s.nom}<span class="sr"> (nouvel onglet)</span></a>` : '';
+        })()}
       </div>
       <div class="contenu">
         <header class="tete">
