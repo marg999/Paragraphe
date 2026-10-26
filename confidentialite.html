@@ -6,13 +6,18 @@
     <title>Confidentialité · Paragraphe</title>
     <meta name="description" content="Ton carnet de lecture privé : note, commente, retrouve chaque livre lu.">
     <meta name="theme-color" content="#1C283D">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Paragraphe">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="application-name" content="Paragraphe">
     <script>
       // Thème choisi (Soir par défaut), appliqué avant l'affichage pour éviter un flash.
       try { document.documentElement.dataset.theme = localStorage.getItem('paragraphe-theme') === 'jour' ? 'jour' : 'soir'; } catch (e) {}
       // Retour d'un lien reçu par e-mail : on note son type avant que Supabase ne nettoie l'adresse.
       window.lienEmail = { recuperation: /type=recovery/.test(location.hash), erreur: /error_code=/.test(location.hash + location.search) };
     </script>
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=7">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
@@ -36,7 +41,7 @@
       </div>
     </main>
     <footer class="pied" id="pied"></footer>
-    <script type="module" src="simple.js?v=6"></script>
+    <script type="module" src="simple.js?v=7"></script>
     <script>
       // Filet de sécurité : si le site ne démarre pas (fichier manquant ou ancienne version en cache), on l'explique.
       setTimeout(function () {

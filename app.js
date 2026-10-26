@@ -89,6 +89,12 @@ export const parametre = (nom) => new URLSearchParams(location.search).get(nom);
 
 // ---------------------------------------------------------------- Éléments visuels
 const ICONES = {
+  livre: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  codebarres: '<path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/>',
+  bilans: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  partager: '<path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>',
+  hors: '<path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M2 2l20 20"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="M19 12.86a10 10 0 0 0-2-1.39"/><path d="M2 8.82a15 15 0 0 1 4.18-2.65"/><path d="M22 8.82a15 15 0 0 0-11.29-3.76"/>',
+  telephone: '<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>',
   recherche: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
@@ -244,6 +250,15 @@ export async function demarrer({ prive = false, invite = false, actif = '' } = {
     return new Promise(() => {});
   }
   entete(user, actif);
+  if (prive && !navigator.onLine) {
+    main.innerHTML = `<div class="conteneur etroit page attente-reseau">
+      <h1 class="titre-2">Pas de connexion pour le moment</h1>
+      <p class="petit">Ton carnet est enregistré en ligne : il s’affichera dès que ton téléphone retrouvera Internet.</p>
+      <button class="btn btn-secondaire" type="button" onclick="location.reload()">Réessayer</button>
+    </div>`;
+    window.addEventListener('online', () => location.reload(), { once: true });
+    return new Promise(() => {});
+  }
   try {
     const m = sessionStorage.getItem(CLE_MESSAGE);
     if (m) {
@@ -298,6 +313,26 @@ function entete(user, actif) {
       </div>
     </div>`;
   document.querySelectorAll('[data-theme-choix]').forEach((b) => b.addEventListener('click', () => choisirTheme(b.dataset.themeChoix)));
+  document.querySelector('.onglets-bas')?.remove();
+  if (user) {
+    const onglets = [
+      ['index.html', 'Bibliothèque', 'bibliotheque', 'livre'],
+      ['ajouter.html', 'Ajouter', 'ajouter', 'plus'],
+      ['statistiques.html', 'Bilans', 'statistiques', 'bilans'],
+      ['compte.html', 'Compte', 'compte', 'utilisateur'],
+    ];
+    const barre = document.createElement('nav');
+    barre.className = 'onglets-bas';
+    barre.setAttribute('aria-label', 'Navigation principale');
+    barre.innerHTML = onglets
+      .map(
+        ([href, lib, cle, ic]) =>
+          `<a href="${href}" class="${cle === 'ajouter' ? 'onglet-ajouter' : ''}"${actif === cle ? ' aria-current="page"' : ''}>${icone(ic, cle === 'ajouter' ? 24 : 22)}<span>${lib}</span></a>`,
+      )
+      .join('');
+    document.body.append(barre);
+    document.body.classList.add('avec-onglets');
+  }
   document.getElementById('pied').innerHTML = `
     <div class="conteneur pied-contenu">
       ${logo(18)}
@@ -540,8 +575,34 @@ function fusionner(listes, max) {
  * Recherche par titre ou auteur dans Open Library, Google Books, le catalogue de la BnF et Wikidata, en même temps.
  * La recherche n’échoue que si les deux sources sont injoignables.
  */
+// ---------------------------------------------------------------- ISBN
+/** Vérifie un ISBN (10 ou 13 chiffres) grâce à sa clé de contrôle. Renvoie l'ISBN nettoyé, ou null. */
+export function isbnValide(code) {
+  const c = String(code ?? '').replace(/[\s-]/g, '').toUpperCase();
+  if (/^97[89]\d{10}$/.test(c)) {
+    const somme = [...c.slice(0, 12)].reduce((s, d, i) => s + Number(d) * (i % 2 ? 3 : 1), 0);
+    return (10 - (somme % 10)) % 10 === Number(c[12]) ? c : null;
+  }
+  if (/^\d{9}[\dX]$/.test(c)) {
+    const somme = [...c].reduce((s, d, i) => s + (d === 'X' ? 10 : Number(d)) * (10 - i), 0);
+    return somme % 11 === 0 ? c : null;
+  }
+  return null;
+}
+
 const PAR_PAGE = 20;
 export async function rechercherLivres(texte, signal, page = 0) {
+  const isbn = isbnValide(texte);
+  if (isbn) {
+    // Recherche par ISBN : une édition précise, on interroge directement chaque source.
+    const sources = await Promise.allSettled([
+      interroger({ q: `isbn:${isbn}`, limit: '5' }, signal),
+      rechercherGoogle(`isbn:${isbn}`, signal, { maxResults: '5' }),
+      rechercherBnf(isbn, 0),
+    ]);
+    if (sources.every((x) => x.status === 'rejected')) throw sources[0].reason;
+    return { livres: fusionner(sources.map((x) => (x.status === 'fulfilled' ? x.value : [])), 10), encore: false, isbn };
+  }
   const sources = await Promise.allSettled([
     interroger({ q: texte, limit: String(PAR_PAGE), offset: String(page * PAR_PAGE) }, signal),
     rechercherGoogle(texte, signal, { maxResults: String(PAR_PAGE), startIndex: String(page * PAR_PAGE) }),
@@ -766,3 +827,65 @@ export async function ecrireLecture(action, valeurs) {
   }
   return r;
 }
+
+// ---------------------------------------------------------------- Application installable
+// Le « service worker » garde une copie du site sur le téléphone : ouverture plus rapide, et pages visibles hors connexion.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+let invitationInstallation = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  invitationInstallation = e;
+  document.dispatchEvent(new CustomEvent('installation-possible'));
+});
+window.addEventListener('appinstalled', () => {
+  invitationInstallation = null;
+  document.dispatchEvent(new CustomEvent('installation-possible'));
+});
+
+export const estInstallee = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+export const estIphone = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+/** « installee », « android » (bouton d'installation disponible), « iphone » (ajout manuel) ou « autre ». */
+export function etatInstallation() {
+  if (estInstallee()) return 'installee';
+  if (invitationInstallation) return 'android';
+  if (estIphone()) return 'iphone';
+  return 'autre';
+}
+export async function installer() {
+  if (!invitationInstallation) return false;
+  invitationInstallation.prompt();
+  const { outcome } = await invitationInstallation.userChoice;
+  invitationInstallation = null;
+  return outcome === 'accepted';
+}
+/** Explications pour iPhone et iPad, où l'installation se fait depuis le menu Partager de Safari. */
+export const aideIphone = () => `<ol class="etapes-iphone">
+  <li>Ouvre Paragraphe dans <strong>Safari</strong>.</li>
+  <li>Touche le bouton <strong>Partager</strong> <span class="icone-inline">${icone('partager', 18)}</span>, en bas de l’écran (en haut sur iPad).</li>
+  <li>Fais défiler et choisis <strong>Sur l’écran d’accueil</strong>, puis <strong>Ajouter</strong>.</li>
+</ol>`;
+
+// ---------------------------------------------------------------- Hors connexion
+function majConnexion() {
+  let bandeau = document.querySelector('.hors-ligne');
+  if (navigator.onLine) {
+    bandeau?.remove();
+    return;
+  }
+  if (bandeau) return;
+  bandeau = document.createElement('div');
+  bandeau.className = 'hors-ligne';
+  bandeau.setAttribute('role', 'status');
+  bandeau.innerHTML = `${icone('hors', 18)}<span>Pas de connexion. Tes lectures s’afficheront dès qu’Internet sera revenu.</span>`;
+  document.body.prepend(bandeau);
+}
+window.addEventListener('online', () => {
+  majConnexion();
+  toast('Connexion retrouvée.');
+});
+window.addEventListener('offline', majConnexion);
+document.addEventListener('DOMContentLoaded', majConnexion);
+majConnexion();

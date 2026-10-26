@@ -1,14 +1,25 @@
 {
+  "id": "./",
   "name": "Paragraphe",
   "short_name": "Paragraphe",
   "description": "Ton carnet de lecture privé : note, commente, retrouve chaque livre lu.",
   "lang": "fr",
-  "start_url": "./",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#25344F",
   "theme_color": "#1C283D",
+  "categories": ["books", "lifestyle", "education"],
   "icons": [
-    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icone-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Ajouter une lecture", "short_name": "Ajouter", "url": "./ajouter.html", "icons": [{ "src": "icone-192.png", "sizes": "192x192" }] },
+    { "name": "Mes bilans", "short_name": "Bilans", "url": "./statistiques.html", "icons": [{ "src": "icone-192.png", "sizes": "192x192" }] }
   ]
 }

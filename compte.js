@@ -1,5 +1,5 @@
 // Mon compte : profil, mot de passe, export, suppression.
-import { demarrer, sb, esc, dateFr, icone, toast, sortir, STATUTS } from './app.js?v=6';
+import { demarrer, sb, esc, dateFr, icone, toast, sortir, STATUTS, etatInstallation, installer, aideIphone } from './app.js?v=7';
 
 const user = await demarrer({ prive: true, actif: 'compte' });
 const main = document.getElementById('contenu');
@@ -23,6 +23,11 @@ main.innerHTML = `<div class="conteneur etroit page compte-page">
     <h2 class="titre-2">Sécurité</h2>
     <p class="petit">Pour changer de mot de passe, choisis-en un nouveau.</p>
     <a class="btn btn-secondaire" href="mot-de-passe.html">Changer mon mot de passe</a>
+  </section>
+
+  <section class="carte bloc" id="application" aria-labelledby="t-appli">
+    <h2 class="titre-2" id="t-appli">Application</h2>
+    <div id="zone-installation"></div>
   </section>
 
   <section class="carte bloc">
@@ -96,3 +101,24 @@ document.getElementById('suppression').addEventListener('submit', async (e) => {
 });
 
 document.getElementById('deconnexion').addEventListener('click', () => sortir('connexion.html?etat=deconnecte'));
+
+// ---- Installation de l'application
+function majInstallation() {
+  const zone = document.getElementById('zone-installation');
+  const etat = etatInstallation();
+  zone.innerHTML =
+    etat === 'installee'
+      ? '<p class="petit">Paragraphe est installé sur cet appareil. Tu peux l’ouvrir depuis ton écran d’accueil.</p>'
+      : etat === 'android'
+        ? `<p class="petit">Installe Paragraphe sur ton téléphone : une icône sur l’écran d’accueil, et le carnet s’ouvre en plein écran comme une application.</p>
+           <button class="btn btn-principal" type="button" id="installer">${icone('telephone')}Installer l’application</button>`
+        : etat === 'iphone'
+          ? `<p class="petit">Sur iPhone et iPad, l’installation se fait depuis Safari, en trois gestes :</p>${aideIphone()}`
+          : `<p class="petit">Sur ton téléphone, ouvre Paragraphe dans Chrome (Android) ou Safari (iPhone) : tu pourras l’ajouter à ton écran d’accueil comme une application.</p>`;
+  document.getElementById('installer')?.addEventListener('click', async () => {
+    if (await installer()) toast('Paragraphe est installé.');
+    majInstallation();
+  });
+}
+majInstallation();
+document.addEventListener('installation-possible', majInstallation);

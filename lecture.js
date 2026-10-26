@@ -3,7 +3,7 @@ import {
   demarrer, sb, esc, nombre, pluriel, dateFr, jours, aujourdhui, icone, couverture, etoiles, pastille, parametre, aller, toast,
   sourceCouverture, lienSource, titreHtml, empreinte, exclusions, livresDeAuteur, livresDuGenre, couleurAuHasard, ecrireLecture,
   normaliser, CRITERES, FORMATS, NOMS_GENRES,
-} from './app.js?v=6';
+} from './app.js?v=7';
 
 const user = await demarrer({ prive: true, actif: 'bibliotheque' });
 const main = document.getElementById('contenu');

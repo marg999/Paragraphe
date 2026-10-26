@@ -1,8 +1,8 @@
 // Ajouter une lecture (ajouter.html) ou la modifier (ajouter.html?id=…, avec &terminer=1 pour « Terminer et noter »).
 import {
   demarrer, sb, esc, sourceCouverture, nombre, jours, icone, couverture, surligner, aujourdhui, parametre, aller, toast,
-  STATUTS, CRITERES, NOMS_GENRES, FORMATS, lireFormulaire, rechercherLivres, titreHtml, ecrireLecture, empreinte,
-} from './app.js?v=6';
+  STATUTS, CRITERES, NOMS_GENRES, FORMATS, lireFormulaire, rechercherLivres, titreHtml, ecrireLecture, empreinte, isbnValide,
+} from './app.js?v=7';
 
 await demarrer({ prive: true, actif: 'ajouter' });
 const main = document.getElementById('contenu');
@@ -61,6 +61,7 @@ function afficherFormulaire(v, erreurs) {
           </div>
         </div>
         <p class="aide" id="etat-recherche" aria-live="polite"></p>
+        <button type="button" class="btn btn-secondaire btn-scan" data-scanner hidden>${icone('codebarres')}Scanner le code-barres</button>
       </div>
       <button type="button" class="btn btn-lien btn-manuel" data-vers="manuel"${etat !== 'recherche' ? ' hidden' : ''}>Livre introuvable ? Ajouter manuellement</button>
 
@@ -156,6 +157,18 @@ function afficherFormulaire(v, erreurs) {
       </div>
     </div>
   </form>`;
+  zone.insertAdjacentHTML('beforeend', `<dialog class="fenetre-scan" aria-labelledby="titre-scan">
+    <div class="scan-contenu">
+      <h2 class="titre-2" id="titre-scan">Scanner le code-barres</h2>
+      <p class="petit">Place le code-barres au dos du livre dans le cadre. Le livre est recherché dès qu’il est lu.</p>
+      <div class="scan-video"><video playsinline muted autoplay aria-hidden="true"></video><span class="scan-cadre" aria-hidden="true"></span></div>
+      <p class="scan-etat" role="status" aria-live="polite">Ouverture de la caméra…</p>
+      <div class="actions">
+        <button type="button" class="btn btn-secondaire" data-fermer-scan>Annuler</button>
+      </div>
+      <p class="aide">Tu peux aussi taper les 13 chiffres de l’ISBN dans la recherche.</p>
+    </div>
+  </dialog>`);
   brancher(zone.querySelector('form'));
   if (erreurs.livre) (zone.querySelector('.manuel:not([hidden]) #titre') ?? zone.querySelector('#recherche'))?.focus();
   else if (erreurs.notes) zone.querySelector('#note_generale-1')?.focus();
@@ -237,7 +250,16 @@ function brancher(form) {
       qCourante = q;
       resultats = r.livres;
       boutonPlus.hidden = !r.encore || !resultats.length;
-      etatRecherche.textContent = resultats.length ? `${resultats.length} livres trouvés.` : '';
+      if (r.isbn && resultats.length === 1) {
+        // ISBN scanné ou tapé : un seul livre correspond, on le choisit directement.
+        rendre(q);
+        choisir(0);
+        etatRecherche.textContent = `Livre trouvé : ${resultats[0].titre}.`;
+        return;
+      }
+      etatRecherche.textContent = resultats.length
+        ? `${resultats.length} livres trouvés.`
+        : r.isbn ? 'Aucun livre trouvé pour cet ISBN. Ajoute-le manuellement.' : '';
       rendre(q);
     } catch (e) {
       if (e.name === 'AbortError' && recherche.value.trim() !== q) return;
@@ -247,6 +269,98 @@ function brancher(form) {
       clearTimeout(minuterie);
     }
   }
+  // ---- Scan du code-barres ----
+  const fenetre = document.querySelector('.fenetre-scan');
+  const video = fenetre.querySelector('video');
+  const etatScan = fenetre.querySelector('.scan-etat');
+  const boutonScan = $('[data-scanner]');
+  let flux = null;
+  let lecteur = null;
+  let enCours = false;
+  boutonScan.hidden = !navigator.mediaDevices?.getUserMedia;
+
+  const chargerZxing = () =>
+    window.ZXing
+      ? Promise.resolve()
+      : new Promise((ok, ko) => {
+          const script = document.createElement('script');
+          script.src = 'zxing.js?v=7';
+          script.onload = ok;
+          script.onerror = () => ko(new Error('Lecteur de code-barres indisponible'));
+          document.head.append(script);
+        });
+
+  function arreterScan() {
+    enCours = false;
+    try {
+      lecteur?.reset();
+    } catch {}
+    lecteur = null;
+    flux?.getTracks().forEach((t) => t.stop());
+    flux = null;
+    video.srcObject = null;
+  }
+  function codeLu(code) {
+    if (!enCours) return;
+    const isbn = isbnValide(code);
+    if (!isbn) {
+      etatScan.textContent = 'Ce code-barres n’est pas celui d’un livre. Cherche le code qui commence par 978 ou 979.';
+      return;
+    }
+    arreterScan();
+    fenetre.close();
+    navigator.vibrate?.(60);
+    recherche.value = isbn;
+    chercher();
+    recherche.focus();
+  }
+  async function scanner() {
+    etatScan.textContent = 'Ouverture de la caméra…';
+    fenetre.showModal();
+    enCours = true;
+    const contraintes = { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false };
+    try {
+      const natif = 'BarcodeDetector' in window && (await window.BarcodeDetector.getSupportedFormats?.())?.includes('ean_13');
+      if (natif) {
+        flux = await navigator.mediaDevices.getUserMedia(contraintes);
+        video.srcObject = flux;
+        await video.play();
+        etatScan.textContent = 'Recherche du code-barres…';
+        const detecteur = new window.BarcodeDetector({ formats: ['ean_13'] });
+        const boucle = async () => {
+          if (!enCours) return;
+          try {
+            const [code] = await detecteur.detect(video);
+            if (code) codeLu(code.rawValue);
+          } catch {}
+          if (enCours) setTimeout(boucle, 200);
+        };
+        boucle();
+      } else {
+        await chargerZxing();
+        if (!enCours) return;
+        const indices = new Map([[window.ZXing.DecodeHintType.POSSIBLE_FORMATS, [window.ZXing.BarcodeFormat.EAN_13]]]);
+        lecteur = new window.ZXing.BrowserMultiFormatReader(indices, 200);
+        etatScan.textContent = 'Recherche du code-barres…';
+        await lecteur.decodeFromConstraints(contraintes, video, (resultat) => {
+          if (resultat) codeLu(resultat.getText());
+        });
+        flux = video.srcObject;
+      }
+    } catch (e) {
+      arreterScan();
+      etatScan.textContent =
+        e?.name === 'NotAllowedError'
+          ? 'L’accès à la caméra a été refusé. Autorise-le dans les réglages de ton navigateur, ou tape l’ISBN dans la recherche.'
+          : e?.name === 'NotFoundError' || e?.name === 'OverconstrainedError'
+            ? 'Aucune caméra n’a été trouvée sur cet appareil. Tape l’ISBN dans la recherche.'
+            : 'La caméra n’a pas pu démarrer. Tape l’ISBN dans la recherche.';
+    }
+  }
+  boutonScan.addEventListener('click', scanner);
+  fenetre.querySelector('[data-fermer-scan]').addEventListener('click', () => fenetre.close());
+  fenetre.addEventListener('close', arreterScan);
+
   boutonPlus.addEventListener('click', async () => {
     boutonPlus.disabled = true;
     boutonPlus.textContent = 'Chargement…';

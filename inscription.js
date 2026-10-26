@@ -1,4 +1,4 @@
-import { demarrer, sb, cadreAuth, messageAuth, esc, aller } from './app.js?v=6';
+import { demarrer, sb, cadreAuth, messageAuth, esc, aller } from './app.js?v=7';
 
 await demarrer({ invite: true, actif: 'inscription' });
 const main = document.getElementById('contenu');

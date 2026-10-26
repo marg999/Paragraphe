@@ -2,7 +2,8 @@
 import {
   demarrer, sb, esc, sourceCouverture, nombre, pluriel, dateFr, jours, icone, symbole, couverture, etoiles, pastille, composition,
   STATUTS, NOMS_GENRES, lusEn, recommanderAccueil, normaliser, couleurAuHasard, toast, aller, titreHtml, ecrireLecture,
-} from './app.js?v=6';
+  etatInstallation, installer, aideIphone,
+} from './app.js?v=7';
 
 const user = await demarrer({ actif: 'bibliotheque' });
 const main = document.getElementById('contenu');
@@ -85,6 +86,7 @@ async function bibliotheque() {
       <div><h1 class="titre-1">Ma bibliothèque</h1><p class="petit" id="resume"></p></div>
       <a class="btn btn-principal" href="ajouter.html">${icone('plus')}Ajouter un livre</a>
     </div>
+    <div id="invitation-appli"></div>
     <div class="duo">
       <section class="carte objectif" id="objectif" aria-labelledby="titre-objectif"></section>
       <section class="carte reco" id="reco" aria-label="Recommandation"><span class="etiquette">Recommandation</span><p class="petit">Recherche d’un livre pour toi…</p></section>
@@ -95,6 +97,45 @@ async function bibliotheque() {
   rendreObjectif();
   rendreListe();
   chargerReco();
+  invitationAppli();
+  document.addEventListener('installation-possible', invitationAppli);
+
+  // ---------------------------------------------------------------- Invitation à installer l'application
+  function invitationAppli() {
+    const zone = document.getElementById('invitation-appli');
+    let masquee = false;
+    try {
+      masquee = localStorage.getItem('paragraphe-invitation-appli') === 'non';
+    } catch {}
+    const etat = etatInstallation();
+    const telephone = matchMedia('(max-width: 767px), (pointer: coarse)').matches;
+    if (masquee || !telephone || (etat !== 'android' && etat !== 'iphone')) {
+      zone.innerHTML = '';
+      return;
+    }
+    zone.innerHTML = `<section class="carte invitation" aria-labelledby="t-invitation">
+      <div class="invitation-texte">
+        <h2 class="etiquette" id="t-invitation">Paragraphe sur ton téléphone</h2>
+        <p>Ajoute le carnet à ton écran d’accueil : il s’ouvrira en plein écran, comme une application.</p>
+        ${etat === 'iphone' ? aideIphone() : ''}
+      </div>
+      <div class="invitation-actions">
+        ${etat === 'android' ? `<button class="btn btn-principal btn-petit" type="button" data-installer>${icone('telephone')}Installer</button>` : ''}
+        <button class="btn btn-lien btn-petit" type="button" data-plus-tard>Plus tard</button>
+      </div>
+    </section>`;
+    zone.querySelector('[data-installer]')?.addEventListener('click', async () => {
+      if (await installer()) toast('Paragraphe est installé.');
+      invitationAppli();
+    });
+    zone.querySelector('[data-plus-tard]').addEventListener('click', () => {
+      try {
+        localStorage.setItem('paragraphe-invitation-appli', 'non');
+      } catch {}
+      zone.innerHTML = '';
+      toast('Tu pourras installer l’application depuis Mon compte.');
+    });
+  }
 
   // ---------------------------------------------------------------- Objectif annuel
   function rendreObjectif() {
