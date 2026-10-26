@@ -41,6 +41,13 @@ export const GENRES = [
   { nom: 'Jeunesse', sujet: 'juvenile_fiction', mots: ['juvenile', 'children', 'jeunesse'] },
 ];
 export const NOMS_GENRES = GENRES.map((g) => g.nom);
+export const FORMATS = { papier: 'Papier', numerique: 'Numérique', audio: 'Audio' };
+
+/** Titre prêt à afficher : marqué dans sa langue s'il n'est pas en français, pour que les lecteurs d'écran le prononcent bien. */
+export const titreHtml = (l) => {
+  const langue = l?.langue;
+  return langue && langue !== 'fr' && /^[a-z]{2}$/.test(langue) ? `<span lang="${langue}">${esc(l.titre)}</span>` : esc(l?.titre);
+};
 
 // ---------------------------------------------------------------- Mise en forme
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -254,7 +261,7 @@ function entete(user, actif) {
   const liens = [
     ['index.html', 'Ma bibliothèque', 'bibliotheque'],
     ['ajouter.html', 'Ajouter une lecture', 'ajouter'],
-    ['statistiques.html', 'Mon année en lecture', 'statistiques'],
+    ['statistiques.html', 'Mes bilans', 'statistiques'],
   ];
   const nav = user
     ? `<nav aria-label="Navigation principale">${liens
@@ -283,24 +290,61 @@ function entete(user, actif) {
     <div class="conteneur pied-contenu">
       ${logo(18)}
       <span>Ton carnet de lecture privé : note, commente, retrouve chaque livre lu.</span>
-      <span>Recherche de livres grâce à <a href="https://openlibrary.org" rel="noopener">Open Library</a> et <a href="https://books.google.com" rel="noopener">Google Books</a> · <a href="confidentialite.html">Confidentialité</a></span>
+      <span>Recherche de livres grâce à <a href="https://openlibrary.org" rel="noopener">Open Library</a> et <a href="https://books.google.com" rel="noopener">Google Books</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="accessibilite.html">Accessibilité : partiellement conforme</a></span>
     </div>`;
 }
 
 // ---------------------------------------------------------------- Open Library
-const CHAMPS_OL = 'key,title,author_name,first_publish_year,number_of_pages_median,cover_i,subject,editions,editions.title,editions.cover_i,editions.number_of_pages';
+const CHAMPS_OL =
+  'key,title,author_name,first_publish_year,number_of_pages_median,cover_i,subject,language,editions,editions.title,editions.cover_i,editions.number_of_pages,editions.language';
+const LANGUES = { fre: 'fr', eng: 'en', ger: 'de', spa: 'es', ita: 'it', por: 'pt', dut: 'nl', rus: 'ru', jpn: 'ja', lat: 'la', gre: 'el', chi: 'zh' };
 
-export function devinerGenre(sujets) {
-  if (!sujets?.length) return null;
-  const texte = sujets.slice(0, 40).join(' | ').toLowerCase();
-  const ordre = ['Bande dessinée', 'Jeunesse', 'Policier', 'Science-fiction', 'Fantasy', 'Poésie', 'Théâtre', 'Biographie', 'Classiques', 'Aventure', 'Histoire', 'Essais', 'Romans'];
-  for (const nom of ordre) if (GENRES.find((g) => g.nom === nom).mots.some((m) => texte.includes(m))) return nom;
-  return null;
+/**
+ * Devine le genre d'un livre à partir des sujets fournis par la source.
+ * On compte les indices plutôt que de prendre le premier mot trouvé :
+ * un roman adapté au théâtre reste un roman, et un roman d'avant 1930 est rangé dans les classiques.
+ */
+export function devinerGenre(sujets, annee) {
+  const s = (sujets ?? []).slice(0, 60).map((x) => String(x).toLowerCase());
+  if (!s.length) return null;
+  const n = (...mots) => s.filter((x) => mots.some((m) => x.includes(m))).length;
+  const seuil = Math.min(2, s.length);
+  const fiction = n('fiction', 'novel', 'roman', 'love stories', 'short stories', 'nouvelles');
+  const specifiques = [
+    ['Bande dessinée', n('comic', 'bande dessinée', 'graphic novel', 'manga') * 2],
+    ['Jeunesse', n('juvenile', 'children', 'jeunesse', 'young adult')],
+    ['Policier', n('detective', 'mystery', 'crime', 'policier', 'thriller', 'murder', 'suspense')],
+    ['Science-fiction', n('science fiction', 'science-fiction', 'dystopia', 'space opera')],
+    ['Fantasy', n('fantasy', 'fantastique', 'magic', 'dragons')],
+  ].sort((a, b) => b[1] - a[1]);
+  if (specifiques[0][1] >= seuil) return specifiques[0][0];
+  const classique = n('classic', 'classique');
+  if (classique || (fiction && annee && annee < 1930)) return 'Classiques';
+  if (fiction) return n('adventure', 'aventure', 'sea stories') >= seuil ? 'Aventure' : 'Romans';
+  const autres = [
+    ['Biographie', n('biography', 'biographie', 'autobiography', 'memoir', 'mémoires')],
+    ['Poésie', n('poetry', 'poésie', 'poems', 'poèmes')],
+    ['Théâtre', n('drama', 'théâtre', 'plays', 'tragedies', 'comedies')],
+    ['Histoire', n('history', 'histoire')],
+    ['Essais', n('essay', 'essai', 'philosophy', 'philosophie', 'social science', 'psychology')],
+    ['Aventure', n('adventure', 'aventure')],
+  ].sort((a, b) => b[1] - a[1]);
+  return autres[0][1] > 0 ? autres[0][0] : null;
 }
+
+const accents = (t) => (String(t ?? '').match(/[À-ÿŒœ]/g) || []).length;
+/** Entre deux écritures du même titre, garde celle qui a ses accents (« préjugés » plutôt que « prejuges »). */
+export function meilleurTitre(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  return normaliser(a) === normaliser(b) && accents(b) > accents(a) ? b : a;
+}
+
 function versLivre(d) {
   const ed = d.editions?.docs?.[0];
-  const titre = ed?.title || d.title;
+  const titre = meilleurTitre(ed?.title || d.title, d.title);
   if (!titre || !d.key) return null;
+  const code = ed?.language?.[0] ?? (d.language?.includes('fre') ? 'fre' : d.language?.[0]);
   return {
     olKey: d.key,
     titre: titre.slice(0, 300),
@@ -308,7 +352,9 @@ function versLivre(d) {
     annee: d.first_publish_year ?? null,
     pages: ed?.number_of_pages || d.number_of_pages_median || null,
     couvertureId: ed?.cover_i || d.cover_i || null,
-    genre: devinerGenre(d.subject),
+    genre: devinerGenre(d.subject, d.first_publish_year),
+    langue: LANGUES[code] ?? null,
+    source: 'Open Library',
   };
 }
 async function interroger(params, signal) {
@@ -318,13 +364,15 @@ async function interroger(params, signal) {
   const json = await rep.json();
   return (json.docs ?? []).map(versLivre).filter(Boolean);
 }
+
 // ---------------------------------------------------------------- Google Books
-async function rechercherGoogle(texte, signal) {
+async function rechercherGoogle(texte, signal, extra = {}) {
   const params = new URLSearchParams({
     q: texte,
     maxResults: '12',
     printType: 'books',
-    fields: 'items(id,volumeInfo(title,subtitle,authors,publishedDate,pageCount,categories,imageLinks/thumbnail))',
+    fields: 'items(id,volumeInfo(title,subtitle,authors,publishedDate,pageCount,categories,language,imageLinks/thumbnail))',
+    ...extra,
   });
   const rep = await fetch(`https://www.googleapis.com/books/v1/volumes?${params}`, { signal: signal ?? AbortSignal.timeout(8000) });
   if (!rep.ok) throw new Error(`Google Books a répondu ${rep.status}`);
@@ -342,63 +390,116 @@ async function rechercherGoogle(texte, signal) {
         pages: v.pageCount > 0 ? v.pageCount : null,
         couvertureId: null,
         aCouverture: Boolean(v.imageLinks?.thumbnail),
-        genre: devinerGenre(v.categories),
+        genre: devinerGenre(v.categories, null),
+        langue: /^[a-z]{2}$/.test(v.language ?? '') ? v.language : null,
         source: 'Google Books',
       };
     })
     .filter(Boolean);
 }
 
-/** Clé servant à repérer un même livre dans les deux sources. */
-const empreinte = (l) => `${normaliser(l.titre).replace(/^(le|la|les|l|un|une|the) /, '').slice(0, 40)}|${normaliser(l.auteur).split(' ').pop()}`;
+/** Clé servant à repérer un même livre, quelle que soit sa source. */
+export const empreinte = (l) =>
+  `${normaliser(l.titre).replace(/^(le|la|les|l|un|une|the) /, '').slice(0, 40)}|${normaliser(l.auteur).split(' ').pop()}`;
+const sansCouverture = (r) => !r.couvertureId && !r.aCouverture;
+
+/** Fusionne plusieurs listes (une de chaque à tour de rôle), retire les doublons et complète les informations. */
+function fusionner(listes, max) {
+  const resultat = [];
+  const index = new Map();
+  const longueur = Math.max(0, ...listes.map((l) => l.length));
+  for (let i = 0; i < longueur; i++) {
+    for (const liste of listes) {
+      const livre = liste[i];
+      if (!livre) continue;
+      const cle = empreinte(livre);
+      if (!index.has(cle)) {
+        index.set(cle, resultat.length);
+        resultat.push({ ...livre });
+        continue;
+      }
+      const j = index.get(cle);
+      const deja = resultat[j];
+      const base = sansCouverture(deja) && !sansCouverture(livre) ? { ...livre } : deja;
+      const autre = base === deja ? livre : deja;
+      base.titre = meilleurTitre(base.titre, autre.titre);
+      base.auteur = meilleurTitre(base.auteur, autre.auteur);
+      base.pages ??= autre.pages;
+      base.annee = Math.min(base.annee ?? Infinity, autre.annee ?? Infinity);
+      if (base.annee === Infinity) base.annee = null;
+      // Open Library connaît la date de première parution : son genre est plus fiable (ex. « Classiques »).
+      base.genre = [base, autre].find((x) => x.source === 'Open Library' && x.genre)?.genre ?? base.genre ?? autre.genre;
+      base.langue ??= autre.langue;
+      resultat[j] = base;
+    }
+  }
+  return resultat.slice(0, max);
+}
 
 /**
  * Recherche par titre ou auteur dans Open Library ET Google Books, en même temps.
- * Les résultats sont mélangés (un de chaque à tour de rôle) et les doublons retirés.
  * La recherche n’échoue que si les deux sources sont injoignables.
  */
 export async function rechercherLivres(texte, signal) {
   const [ol, gb] = await Promise.allSettled([interroger({ q: texte, limit: '8' }, signal), rechercherGoogle(texte, signal)]);
   if (ol.status === 'rejected' && gb.status === 'rejected') throw ol.reason;
-  const a = ol.status === 'fulfilled' ? ol.value.map((l) => ({ ...l, source: 'Open Library' })) : [];
-  const b = gb.status === 'fulfilled' ? gb.value : [];
-  const vus = new Set();
-  const resultat = [];
-  for (let i = 0; i < Math.max(a.length, b.length) && resultat.length < 12; i++) {
-    for (const livre of [a[i], b[i]]) {
-      if (!livre) continue;
-      const cle = empreinte(livre);
-      if (vus.has(cle)) {
-        // Même livre déjà listé : on complète les informations manquantes.
-        const i2 = resultat.findIndex((r) => empreinte(r) === cle);
-        const deja = resultat[i2];
-        const sansCouv = (r) => !r.couvertureId && !r.aCouverture;
-        if (deja && sansCouv(deja) && !sansCouv(livre)) {
-          // On garde la version qui a une couverture.
-          resultat[i2] = { ...livre, pages: livre.pages ?? deja.pages, annee: livre.annee ?? deja.annee, genre: livre.genre ?? deja.genre };
-        } else if (deja) {
-          deja.pages ??= livre.pages;
-          deja.annee ??= livre.annee;
-          deja.genre ??= livre.genre;
-        }
-        continue;
-      }
-      vus.add(cle);
-      resultat.push(livre);
-    }
-  }
-  return resultat.slice(0, 12);
+  return fusionner([ol.status === 'fulfilled' ? ol.value : [], gb.status === 'fulfilled' ? gb.value : []], 12);
 }
 
-export async function recommander(genre, exclusCles, exclusTitres) {
+// ---------------------------------------------------------------- Recommandations
+/** Ce qu'il ne faut pas proposer : les livres déjà dans la bibliothèque et ceux écartés avec « Pas pour moi ». */
+export function exclusions(livres, ecartees = []) {
+  return {
+    cles: new Set([...livres.map((l) => l.ol_key).filter(Boolean), ...ecartees]),
+    empreintes: new Set(livres.map(empreinte)),
+  };
+}
+const autorise = (ex) => (l) => !ex.cles.has(l.olKey) && !ex.empreintes.has(empreinte(l));
+const avecCouvertureDabord = (liste) => [...liste.filter((l) => !sansCouverture(l)), ...liste.filter(sansCouverture)];
+const decalage = (graine, max) => [...String(graine ?? '')].reduce((s, c) => s + c.charCodeAt(0), 0) % max;
+
+/** Autres livres d'un auteur (Open Library + Google Books). */
+export async function livresDeAuteur(auteur, ex, max = 4) {
+  const nom = String(auteur ?? '').split(',')[0].trim();
+  if (!nom || nom === 'Auteur inconnu') return [];
+  const famille = normaliser(nom).split(' ').pop();
+  const [ol, gb] = await Promise.allSettled([
+    interroger({ author: nom, limit: '25' }),
+    rechercherGoogle(`inauthor:"${nom}"`, undefined, { maxResults: '20' }),
+  ]);
+  if (ol.status === 'rejected' && gb.status === 'rejected') throw ol.reason;
+  const liste = fusionner([ol.status === 'fulfilled' ? ol.value : [], gb.status === 'fulfilled' ? gb.value : []], 40)
+    .filter((l) => normaliser(l.auteur).split(' ').includes(famille))
+    .filter(autorise(ex));
+  return avecCouvertureDabord(liste).slice(0, max);
+}
+
+/** Livres d'un genre, de préférence avec une édition française. La graine fait varier la sélection d'un livre à l'autre. */
+export async function livresDuGenre(genre, ex, max = 4, graine = '') {
   const sujet = GENRES.find((g) => g.nom === genre)?.sujet ?? 'classic_literature';
-  const garde = (l) => !exclusCles.has(l.olKey) && !exclusTitres.has(normaliser(l.titre));
+  const offset = String(decalage(graine, 20));
   for (const q of [`subject_key:${sujet} language:fre`, `subject_key:${sujet}`]) {
-    const livres = (await interroger({ q, limit: '40' })).filter(garde);
-    const choix = livres.find((l) => l.couvertureId) ?? livres[0];
-    if (choix) return { ...choix, genre: choix.genre ?? genre };
+    const liste = (await interroger({ q, limit: '40', offset })).filter(autorise(ex));
+    if (liste.length) return avecCouvertureDabord(liste).slice(0, max).map((l) => ({ ...l, genre: l.genre ?? genre }));
   }
-  return null;
+  return [];
+}
+
+/** Recommandation de l'accueil : d'abord un auteur que tu as aimé, sinon ton genre préféré. */
+export async function recommanderAccueil(livres, ecartees) {
+  const ex = exclusions(livres, ecartees);
+  const lus = livres.filter((l) => l.statut === 'lu');
+  const aimes = [...lus].filter((l) => (l.note_generale ?? 0) >= 4).sort((a, b) => score(b) - score(a)).slice(0, 6);
+  if (aimes.length) {
+    const modele = aimes[Math.floor(Math.random() * aimes.length)];
+    try {
+      const [livre] = await livresDeAuteur(modele.auteur, ex, 1);
+      if (livre) return { livre, raison: `Parce que tu as aimé « ${modele.titre} »` };
+    } catch {}
+  }
+  const genre = genrePrefere(lus)?.nom ?? null;
+  const [livre] = await livresDuGenre(genre ?? 'Classiques', ex, 1, Date.now() % 97);
+  return livre ? { livre, raison: raisonRecommandation(lus, genre !== null) } : null;
 }
 
 // ---------------------------------------------------------------- Bilans
@@ -437,7 +538,7 @@ export function raisonRecommandation(livres, memeGenre) {
     ['note_personnages', 'Parce que tu aimes les personnages forts'],
   ].sort((a, b) => (m[b[0]] ?? 0) - (m[a[0]] ?? 0))[0][1];
 }
-const score = (l) => (l.note_generale ?? 0) * 2 + (l.note_rythme ?? 0) + (l.note_emotion ?? 0) + (l.note_personnages ?? 0);
+export const score = (l) => (l.note_generale ?? 0) * 2 + (l.note_rythme ?? 0) + (l.note_emotion ?? 0) + (l.note_personnages ?? 0);
 export function bilan(livres, relectures, annee) {
   const lus = lusEn(livres, annee);
   const pages = lus.reduce((s, l) => s + (l.pages ?? 0), 0);
@@ -504,6 +605,8 @@ export function lireFormulaire(fd) {
     note_emotion: entier('note_emotion', 1, 5),
     note_personnages: entier('note_personnages', 1, 5),
     commentaire: texte('commentaire', 20000),
+    format: FORMATS[fd.get('format')] ? String(fd.get('format')) : null,
+    langue: /^[a-z]{2}$/.test(String(fd.get('langue') ?? '')) ? String(fd.get('langue')) : null,
   };
   if (!v.titre || !v.auteur) erreurs.livre = 'Choisis un livre dans la recherche, ou indique au moins son titre et son auteur.';
   if (statut === 'a-lire') {
@@ -536,3 +639,19 @@ export const cadreAuth = (titre, intro, contenu) => `
     </div>
     <div class="decor">${composition()}</div>
   </div>`;
+
+// ---------------------------------------------------------------- Enregistrement
+/**
+ * Enregistre une lecture. Si la base n'a pas encore les colonnes « format » et « langue »
+ * (mise à jour SQL pas encore faite), on enregistre sans elles plutôt que d'échouer.
+ * action reçoit les valeurs et renvoie la promesse Supabase.
+ */
+export async function ecrireLecture(action, valeurs) {
+  let r = await action(valeurs);
+  if (r.error && /format|langue/.test(`${r.error.message ?? ''} ${r.error.details ?? ''}`)) {
+    const { format, langue, ...reste } = valeurs;
+    r = await action(reste);
+    if (!r.error) r.sansFormat = true;
+  }
+  return r;
+}

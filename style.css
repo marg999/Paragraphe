@@ -1,4 +1,4 @@
-@import url('polices.css?v=3');
+@import url('polices.css?v=4');
 
 /* ==========================================================================
    Paragraphe · styles globaux
@@ -1069,3 +1069,107 @@ input[aria-invalid='true'] {
 .alerte-vide { padding-block: var(--espace-12); }
 .biblio #liste { display: grid; gap: var(--espace-8); }
 .form-lecture .suggestions .source { opacity: 0.8; }
+
+/* ===== Mes bilans ===== */
+.stats .barre-bilan { display: flex; justify-content: space-between; align-items: center; gap: var(--espace-4); flex-wrap: wrap; margin-top: calc(var(--espace-6) * -1); }
+.stats .onglets { display: inline-flex; border: 1px solid var(--filet); border-radius: var(--rayon-rond); padding: 3px; }
+.stats .onglets button {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  font: 600 15px/20px var(--f-texte); color: var(--texte-secondaire);
+  padding: 8px 20px; border-radius: var(--rayon-rond);
+}
+.stats .onglets button[aria-pressed='true'] { background: var(--texte); color: var(--surface); }
+.stats .periode { display: flex; align-items: center; gap: var(--espace-3); }
+.stats .periode h2 { min-width: 10ch; text-align: center; }
+.stats .fleche {
+  appearance: none; cursor: pointer; width: 40px; height: 40px; border-radius: var(--rayon-rond);
+  border: 1px solid var(--bordure); background: none; color: var(--texte); font: 400 24px/1 var(--f-titre);
+  display: grid; place-items: center;
+}
+.stats .fleche:hover:not(:disabled) { background: var(--surligne); }
+.stats .fleche:disabled { opacity: 0.35; cursor: default; }
+.stats .bilan { display: grid; gap: var(--espace-8); }
+.stats .duo-mois { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.stats .carte h3 + .defile, .stats .carte h3 + .analyse { margin-top: var(--espace-4); }
+
+/* Calendrier */
+.stats .calendrier { width: 100%; min-width: 280px; border-collapse: separate; border-spacing: 6px; table-layout: fixed; margin-top: var(--espace-2); }
+.stats .calendrier th { font: 700 12px/16px var(--f-texte); letter-spacing: 0.08em; color: var(--texte-secondaire); padding-bottom: 4px; }
+.stats .calendrier abbr { text-decoration: none; }
+.stats .calendrier td {
+  height: 42px; text-align: center; vertical-align: middle; border-radius: var(--rayon-m);
+  background: var(--surface-profonde); font: 600 14px/1 var(--f-texte); color: var(--texte-secondaire);
+  font-variant-numeric: tabular-nums;
+}
+.stats .calendrier td.vide-cal { background: none; }
+.stats .calendrier td.futur { background: none; border: 1px dashed var(--filet); opacity: 0.6; }
+.stats .calendrier td.lecture-1, .stats .legende .lecture-1 { background: color-mix(in srgb, var(--accent) 32%, var(--surface-profonde)); color: var(--texte); }
+.stats .calendrier td.lecture-2, .stats .legende .lecture-2 { background: color-mix(in srgb, var(--accent) 62%, var(--surface-profonde)); color: var(--texte); }
+.stats .calendrier td.fin, .stats .legende .fin { background: var(--accent); color: var(--sur-accent); }
+.stats .legende { display: flex; flex-wrap: wrap; gap: var(--espace-2) var(--espace-4); margin-top: var(--espace-3); font-size: 13px; color: var(--texte-secondaire); }
+.stats .legende span { display: inline-flex; align-items: center; gap: 6px; }
+.stats .legende i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+
+/* Analyse en phrases */
+.stats .analyse { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--espace-3); align-content: start; }
+.stats .analyse li { position: relative; padding-left: 22px; line-height: 24px; }
+.stats .analyse li::before { content: '¶'; position: absolute; left: 0; top: 0; font-family: var(--f-titre); font-size: 20px; color: var(--accent); }
+.stats .coeur { display: grid; gap: var(--espace-2); margin-top: var(--espace-6); padding-top: var(--espace-4); border-top: 1px solid var(--filet); }
+.stats .coeur-lien { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: var(--espace-3); align-items: center; color: inherit; text-decoration: none; }
+.stats .coeur-lien > span { display: grid; min-width: 0; }
+.stats .coeur-lien .titre-livre { font-size: 21px; line-height: 26px; }
+.stats .coeur-lien:hover .titre-livre { text-decoration: underline; text-decoration-thickness: 1px; }
+.stats .liste-mois li { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.stats .vide-liste { margin-top: var(--espace-3); }
+
+/* Profil de lecteur */
+.stats .profil-grille { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--espace-8); margin-top: var(--espace-4); }
+.stats .profil-barres { display: grid; gap: var(--espace-6); align-content: start; }
+.stats .repartition { display: grid; gap: var(--espace-3); }
+.stats .repartition h4 { margin: 0; }
+.stats .lien-mois { cursor: pointer; }
+.stats .lien-mois .zone { fill: transparent; }
+.stats .lien-mois:hover .zone, .stats .lien-mois:focus-visible .zone { fill: var(--surligne); }
+.stats .lien-mois:focus { outline: none; }
+.stats .lien-mois:focus-visible .zone { stroke: var(--focus); stroke-width: 2; }
+
+@media (max-width: 900px) {
+  .stats .duo-mois, .stats .profil-grille { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .stats .barre-bilan { flex-direction: column; align-items: stretch; }
+  .stats .onglets { align-self: flex-start; }
+  .stats .periode { justify-content: space-between; }
+  .stats .calendrier { border-spacing: 3px; }
+  .stats .calendrier td { font-size: 12px; height: 34px; }
+  .stats .liste-mois li { grid-template-columns: 36px minmax(0, 1fr); }
+  .stats .liste-mois li > .etoiles { grid-column: 2; }
+}
+
+/* ===== Formulaire : champs obligatoires, format ===== */
+.form-lecture .legende-obligatoire { grid-column: 1 / -1; margin-bottom: calc(var(--espace-8) * -1 + var(--espace-2)); }
+.obligatoire { color: var(--danger); font-weight: 700; margin-left: 2px; }
+.facultatif { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.fiche-page .form-relecture .large-form { grid-column: 1 / -1; }
+.formulaire .legende-obligatoire { margin-bottom: calc(var(--espace-2) * -1); }
+
+/* ===== Fiche : « Si tu as aimé ce livre » ===== */
+.fiche-page .recos-fiche { display: grid; gap: var(--espace-6); margin-top: var(--espace-16); padding-top: var(--espace-12); border-top: 1px solid var(--filet); }
+.fiche-page .rangee { display: grid; gap: var(--espace-4); }
+.fiche-page .rangee h3 { margin: 0; }
+.fiche-page .reco-grille { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--espace-6) var(--espace-4); align-items: start; }
+.fiche-page .reco-carte {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: var(--espace-3); align-items: start;
+  padding: var(--espace-3); border-radius: var(--rayon-l); background: var(--surface-elevee); border: 1px solid var(--filet);
+}
+.fiche-page .reco-lien { color: inherit; text-decoration: none; transition: box-shadow 0.15s; }
+.fiche-page .reco-lien:hover { box-shadow: var(--ombre); }
+.fiche-page .reco-texte { display: grid; gap: var(--espace-1); min-width: 0; align-content: start; }
+.fiche-page .reco-titre { font-family: var(--f-titre); font-weight: 600; font-size: 19px; line-height: 23px; overflow-wrap: anywhere; }
+.fiche-page .reco-actions { display: grid; gap: 2px; justify-items: start; margin-top: var(--espace-2); }
+.fiche-page .reco-actions .btn { white-space: normal; text-align: left; }
+.fiche-page .reco-actions .btn-lien { padding-left: 0; }
+.fiche-page .reco-ok { color: var(--succes); font-weight: 600; font-size: 14px; margin-top: var(--espace-2); }
+@media (max-width: 1023px) { .fiche-page .reco-grille { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .fiche-page .reco-grille { grid-template-columns: minmax(0, 1fr); } }
+.texte-simple .liste-texte { margin: 0; padding-left: 1.2em; display: grid; gap: var(--espace-2); max-width: 68ch; }

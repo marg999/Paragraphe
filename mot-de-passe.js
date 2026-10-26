@@ -1,6 +1,6 @@
 // Deux usages : demander un lien (mot de passe oublié) ou choisir un nouveau mot de passe
 // (après avoir cliqué sur le lien reçu, ou depuis « Mon compte »).
-import { demarrer, sb, cadreAuth, messageAuth, esc, aller } from './app.js?v=3';
+import { demarrer, sb, cadreAuth, messageAuth, esc, aller } from './app.js?v=4';
 
 const user = await demarrer({ actif: 'mot-de-passe' });
 const main = document.getElementById('contenu');
@@ -10,9 +10,10 @@ if (user) {
     window.lienEmail?.recuperation ? 'Choisis un nouveau mot de passe' : 'Changer de mot de passe',
     '',
     `<p class="alerte" role="alert" hidden id="erreur"></p>
+     <p class="aide legende-obligatoire">Les champs marqués d’un astérisque (<span class="obligatoire" aria-hidden="true">*</span>) sont obligatoires.</p>
      <form id="form" novalidate>
-       <div class="champ"><label for="mdp">Nouveau mot de passe</label><input id="mdp" type="password" autocomplete="new-password" minlength="8" required></div>
-       <div class="champ"><label for="confirmation">Confirme le mot de passe</label><input id="confirmation" type="password" autocomplete="new-password" minlength="8" required></div>
+       <div class="champ"><label for="mdp">Nouveau mot de passe <span class="obligatoire" aria-hidden="true">*</span></label><input id="mdp" type="password" autocomplete="new-password" minlength="8" required aria-required="true" aria-describedby="erreur"></div>
+       <div class="champ"><label for="confirmation">Confirme le mot de passe <span class="obligatoire" aria-hidden="true">*</span></label><input id="confirmation" type="password" autocomplete="new-password" minlength="8" required aria-required="true" aria-describedby="erreur"></div>
        <button class="btn btn-principal" type="submit">Enregistrer le mot de passe</button>
      </form>
      <div class="liens"><a href="compte.html">Retour à mon compte</a></div>`,
@@ -35,8 +36,9 @@ if (user) {
     'Indique ton adresse : tu recevras un lien pour choisir un nouveau mot de passe.',
     `${window.lienEmail?.erreur ? '<p class="info">Ce lien n’est plus valable. Demande un nouveau lien ci-dessous.</p>' : ''}
      <p class="alerte" role="alert" hidden id="erreur"></p>
+     <p class="aide legende-obligatoire">Les champs marqués d’un astérisque (<span class="obligatoire" aria-hidden="true">*</span>) sont obligatoires.</p>
      <form id="form" novalidate>
-       <div class="champ"><label for="email">Adresse e-mail</label><input id="email" type="email" autocomplete="email" required></div>
+       <div class="champ"><label for="email">Adresse e-mail <span class="obligatoire" aria-hidden="true">*</span></label><input id="email" type="email" autocomplete="email" required aria-required="true" aria-describedby="erreur"></div>
        <button class="btn btn-principal" type="submit">Recevoir le lien</button>
      </form>
      <div class="liens"><a href="connexion.html">Retour à la connexion</a></div>`,
@@ -61,4 +63,6 @@ function afficher(message) {
   const erreur = document.getElementById('erreur');
   erreur.textContent = message;
   erreur.hidden = false;
+  erreur.setAttribute('tabindex', '-1');
+  erreur.focus();
 }

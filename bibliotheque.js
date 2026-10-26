@@ -1,8 +1,8 @@
 // Page d'accueil : présentation si on n'est pas connecté, bibliothèque sinon.
 import {
   demarrer, sb, esc, sourceCouverture, nombre, pluriel, dateFr, jours, icone, symbole, couverture, etoiles, pastille, composition,
-  STATUTS, NOMS_GENRES, lusEn, genrePrefere, raisonRecommandation, recommander, normaliser, couleurAuHasard, toast, aller,
-} from './app.js?v=3';
+  STATUTS, NOMS_GENRES, lusEn, recommanderAccueil, normaliser, couleurAuHasard, toast, aller, titreHtml, ecrireLecture,
+} from './app.js?v=4';
 
 const user = await demarrer({ actif: 'bibliotheque' });
 const main = document.getElementById('contenu');
@@ -222,12 +222,8 @@ async function bibliotheque() {
     let raison = '';
     try {
       const { data: ecartees } = await sb.from('recos_ecartees').select('ol_key');
-      const lus = etat.livres.filter((l) => l.statut === 'lu');
-      const genre = genrePrefere(lus)?.nom ?? null;
-      const cles = new Set([...etat.livres.map((l) => l.ol_key ?? ''), ...(ecartees ?? []).map((e) => e.ol_key)]);
-      const titres = new Set(etat.livres.map((l) => normaliser(l.titre)));
-      livre = await recommander(genre, cles, titres);
-      if (livre) raison = raisonRecommandation(lus, genre !== null && livre.genre === genre);
+      const proposition = await recommanderAccueil(etat.livres, (ecartees ?? []).map((e) => e.ol_key));
+      if (proposition) ({ livre, raison } = proposition);
     } catch {
       box.innerHTML = `<span class="etiquette">Recommandation</span><p class="petit">Les suggestions sont indisponibles pour le moment. Réessaie un peu plus tard.</p>`;
       return;
@@ -243,16 +239,17 @@ async function bibliotheque() {
       ${couverture(sourceCouverture(livre), 'nuit', livre.titre)}
       <div class="texte">
         <p class="etiquette">${esc(raison)}</p>
-        <p class="titre-livre">${esc(livre.titre)}</p>
+        <p class="titre-livre">${titreHtml(livre)}</p>
         <p class="petit">${esc(livre.auteur)}${livre.annee ? ` · ${livre.annee}` : ''}${livre.pages ? ` · ${nombre(livre.pages)} pages` : ''}</p>
         <div class="actions">
-          <button class="btn btn-principal" type="button" data-reco="ajouter">Ajouter à « À lire »</button>
+          <button class="btn btn-principal" type="button" data-reco="ajouter">Ajouter à « À lire »</button>
           <button class="btn btn-lien" type="button" data-reco="ecarter">Pas pour moi</button>
         </div>
       </div></div>`;
     box.querySelector('[data-reco="ajouter"]').addEventListener('click', async (e) => {
       e.target.disabled = true;
-      const { error } = await sb.from('lectures').insert({
+      const { error } = await ecrireLecture((v) => sb.from('lectures').insert(v), {
+        langue: livre.langue ?? null,
         ol_key: livre.olKey,
         titre: livre.titre,
         auteur: livre.auteur,
@@ -267,7 +264,7 @@ async function bibliotheque() {
         e.target.disabled = false;
         return toast('Le livre n’a pas pu être ajouté. Réessaie dans un instant.');
       }
-      aller('index.html', `${livre.titre} ajouté à « À lire ».`);
+      aller('index.html', `${livre.titre} ajouté à « À lire ».`);
     });
     box.querySelector('[data-reco="ecarter"]').addEventListener('click', async () => {
       await sb.from('recos_ecartees').upsert({ user_id: user.id, ol_key: livre.olKey });
@@ -288,7 +285,7 @@ function carteLivre(l) {
     ${couverture(sourceCouverture(l), l.couleur, l.titre)}
     <div class="livre-meta">
       ${pastille(l.statut)}
-      <span class="livre-titre">${esc(l.titre)}</span>
+      <span class="livre-titre">${titreHtml(l)}</span>
       <span class="petit">${esc(l.auteur)}${l.annee ? ` · ${l.annee}` : ''}</span>
       ${l.note_generale ? etoiles(l.note_generale, 'Note générale') : ''}
       ${sous ? `<span class="petit">${sous}</span>` : ''}

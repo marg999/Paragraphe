@@ -1,5 +1,5 @@
 // Mon compte : profil, mot de passe, export, suppression.
-import { demarrer, sb, esc, dateFr, icone, toast, sortir, STATUTS } from './app.js?v=3';
+import { demarrer, sb, esc, dateFr, icone, toast, sortir, STATUTS } from './app.js?v=4';
 
 const user = await demarrer({ prive: true, actif: 'compte' });
 const main = document.getElementById('contenu');
@@ -37,7 +37,7 @@ main.innerHTML = `<div class="conteneur etroit page compte-page">
     <details>
       <summary class="btn btn-danger">Supprimer mon compte</summary>
       <form class="form confirmer" id="suppression" novalidate>
-        <div class="champ"><label for="confirmation">Tape SUPPRIMER pour confirmer</label><input id="confirmation" type="text" autocomplete="off" required></div>
+        <div class="champ"><label for="confirmation">Tape SUPPRIMER pour confirmer <span class="obligatoire" aria-hidden="true">*</span></label><input id="confirmation" type="text" autocomplete="off" required aria-required="true" aria-describedby="erreur-suppression"></div>
         <p class="erreur" role="alert" hidden id="erreur-suppression"></p>
         <button class="btn btn-danger" type="submit">${icone('corbeille')}Supprimer définitivement</button>
       </form>

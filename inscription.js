@@ -1,4 +1,4 @@
-import { demarrer, sb, cadreAuth, messageAuth, esc, aller } from './app.js?v=3';
+import { demarrer, sb, cadreAuth, messageAuth, esc, aller } from './app.js?v=4';
 
 await demarrer({ invite: true, actif: 'inscription' });
 const main = document.getElementById('contenu');
@@ -6,12 +6,13 @@ main.innerHTML = cadreAuth(
   'Créer mon carnet',
   'Gratuit et privé : toi seul vois tes lectures, tes notes et tes commentaires.',
   `<p class="alerte" role="alert" hidden id="erreur"></p>
-   <form id="form" novalidate>
+   <p class="aide legende-obligatoire">Les champs marqués d’un astérisque (<span class="obligatoire" aria-hidden="true">*</span>) sont obligatoires.</p>
+     <form id="form" novalidate>
      <div class="champ"><label for="prenom">Prénom ou pseudo</label><input id="prenom" name="prenom" type="text" autocomplete="given-name" maxlength="60"></div>
-     <div class="champ"><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+     <div class="champ"><label for="email">Adresse e-mail <span class="obligatoire" aria-hidden="true">*</span></label><input id="email" name="email" type="email" autocomplete="email" required aria-required="true" aria-describedby="erreur"></div>
      <div class="champ">
-       <label for="mot_de_passe">Mot de passe</label>
-       <input id="mot_de_passe" name="mot_de_passe" type="password" autocomplete="new-password" minlength="8" required aria-describedby="aide-mdp">
+       <label for="mot_de_passe">Mot de passe <span class="obligatoire" aria-hidden="true">*</span></label>
+       <input id="mot_de_passe" name="mot_de_passe" type="password" autocomplete="new-password" minlength="8" required aria-required="true" aria-describedby="aide-mdp erreur">
        <span class="aide" id="aide-mdp">Au moins 8 caractères.</span>
      </div>
      <button class="btn btn-principal" type="submit">Créer mon carnet</button>
@@ -47,6 +48,9 @@ form.addEventListener('submit', async (e) => {
     <div class="liens"><a href="connexion.html">Retour à la connexion</a></div>`;
 });
 function afficher(message) {
+  const erreur = document.getElementById('erreur');
   erreur.textContent = message;
   erreur.hidden = false;
+  erreur.setAttribute('tabindex', '-1');
+  erreur.focus();
 }

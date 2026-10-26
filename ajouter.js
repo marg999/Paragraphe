@@ -1,8 +1,8 @@
 // Ajouter une lecture (ajouter.html) ou la modifier (ajouter.html?id=…, avec &terminer=1 pour « Terminer et noter »).
 import {
   demarrer, sb, esc, sourceCouverture, nombre, jours, icone, couverture, surligner, aujourdhui, parametre, aller, toast,
-  STATUTS, CRITERES, NOMS_GENRES, lireFormulaire, rechercherLivres,
-} from './app.js?v=3';
+  STATUTS, CRITERES, NOMS_GENRES, FORMATS, lireFormulaire, rechercherLivres, titreHtml, ecrireLecture,
+} from './app.js?v=4';
 
 await demarrer({ prive: true, actif: 'ajouter' });
 const main = document.getElementById('contenu');
@@ -40,14 +40,20 @@ function afficherFormulaire(v, erreurs) {
   const annuler = lecture ? `lecture.html?id=${encodeURIComponent(lecture.id)}` : 'index.html';
   const etoile = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.94 5.96 6.56.95-4.75 4.63 1.12 6.54L12 17.5l-5.87 3.08 1.12-6.54L2.5 9.41l6.56-.95z"/></svg>';
   const zone = document.getElementById('zone-form');
+  const etoileObligatoire = '<span class="obligatoire" aria-hidden="true">*</span>';
+  const decrit = (...ids) => {
+    const liste = ids.filter(Boolean);
+    return liste.length ? ` aria-describedby="${liste.join(' ')}"` : '';
+  };
   zone.innerHTML = `<form class="form-lecture" novalidate>
+    <p class="aide legende-obligatoire">Les champs marqués d’un astérisque (${etoileObligatoire}) sont obligatoires. La note générale et la date de fin ne le sont que pour un livre lu.</p>
     <div class="col">
       <div class="champ bloc-recherche"${etat !== 'recherche' ? ' hidden' : ''}>
-        <label for="recherche">Titre ou auteur</label>
+        <label for="recherche">Titre ou auteur ${etoileObligatoire}</label>
         <div class="recherche">
           <div class="avec-icone">${icone('recherche')}
             <input id="recherche" type="search" autocomplete="off" placeholder="Ex. Les Misérables, Dumas…" role="combobox"
-              aria-expanded="false" aria-controls="suggestions" aria-autocomplete="list" aria-describedby="etat-recherche">
+              aria-expanded="false" aria-controls="suggestions" aria-autocomplete="list" aria-required="true"${erreurs.livre ? ' aria-invalid="true"' : ''}${decrit('etat-recherche', erreurs.livre && 'err-livre')}>
           </div>
           <div class="suggestions" id="suggestions" role="listbox" aria-label="Livres trouvés" hidden></div>
         </div>
@@ -68,8 +74,8 @@ function afficherFormulaire(v, erreurs) {
       </div>
 
       <div class="manuel"${etat !== 'manuel' ? ' hidden' : ''}>
-        <div class="champ large"><label for="titre">Titre</label><input id="titre" name="titre" type="text" maxlength="300" value="${esc(v.titre)}"${erreurs.livre ? ' aria-invalid="true"' : ''}></div>
-        <div class="champ large"><label for="auteur">Auteur</label><input id="auteur" name="auteur" type="text" maxlength="300" value="${esc(v.auteur)}"${erreurs.livre ? ' aria-invalid="true"' : ''}></div>
+        <div class="champ large"><label for="titre">Titre ${etoileObligatoire}</label><input id="titre" name="titre" type="text" maxlength="300" required aria-required="true" value="${esc(v.titre)}"${erreurs.livre ? ' aria-invalid="true"' : ''}${decrit(erreurs.livre && 'err-livre')}></div>
+        <div class="champ large"><label for="auteur">Auteur ${etoileObligatoire}</label><input id="auteur" name="auteur" type="text" maxlength="300" required aria-required="true" value="${esc(v.auteur)}"${erreurs.livre ? ' aria-invalid="true"' : ''}${decrit(erreurs.livre && 'err-livre')}></div>
         <div class="champ"><label for="annee">Année de parution</label><input id="annee" name="annee" type="number" inputmode="numeric" min="-3000" max="2100" value="${esc(v.annee)}"></div>
         <div class="champ"><label for="pages">Nombre de pages</label><input id="pages" name="pages" type="number" inputmode="numeric" min="1" max="100000" value="${esc(v.pages)}"></div>
         <button type="button" class="btn btn-lien large retour-recherche" data-vers="recherche" data-vider>Revenir à la recherche</button>
@@ -77,19 +83,28 @@ function afficherFormulaire(v, erreurs) {
       <input type="hidden" name="ol_key" value="${esc(v.ol_key)}">
       <input type="hidden" name="couverture_id" value="${esc(v.couverture_id)}">
       <input type="hidden" name="couleur" value="${esc(v.couleur)}">
-      ${erreurs.livre ? `<p class="erreur" role="alert">${esc(erreurs.livre)}</p>` : ''}
+      <input type="hidden" name="langue" value="${esc(v.langue)}">
+      ${erreurs.livre ? `<p class="erreur" role="alert" id="err-livre">${esc(erreurs.livre)}</p>` : ''}
 
       <div class="champ">
         <label for="genre">Genre</label>
-        <select id="genre" name="genre"><option value="">Choisir un genre</option>
+        <select id="genre" name="genre" aria-describedby="aide-genre"><option value="">Choisir un genre</option>
           ${NOMS_GENRES.map((g) => `<option value="${g}"${v.genre === g ? ' selected' : ''}>${g}</option>`).join('')}
         </select>
+        <p class="aide" id="aide-genre" hidden>Genre proposé automatiquement d’après la fiche du livre : vérifie-le.</p>
       </div>
-
       <fieldset class="champ"><legend>Statut</legend>
         <div class="segments">
           ${Object.entries(STATUTS)
             .map(([k, lib]) => `<span><input class="sr" type="radio" name="statut" id="statut-${k}" value="${k}"${statut === k ? ' checked' : ''}><label for="statut-${k}">${lib}</label></span>`)
+            .join('')}
+        </div>
+      </fieldset>
+
+      <fieldset class="champ"><legend>Format <span class="facultatif">(facultatif)</span></legend>
+        <div class="segments">
+          ${Object.entries(FORMATS)
+            .map(([k, lib]) => `<span><input class="sr" type="radio" name="format" id="format-${k}" value="${k}"${v.format === k ? ' checked' : ''}><label for="format-${k}">${lib}</label></span>`)
             .join('')}
         </div>
       </fieldset>
@@ -105,8 +120,8 @@ function afficherFormulaire(v, erreurs) {
         <span class="etiquette">Notation · 4 critères sur 5 étoiles</span>
         <div class="carte notation">
           ${CRITERES.map(
-            (c, i) => `<fieldset class="critere${i === 0 ? ' principal' : ''}">
-              <legend><span class="etiquette">${c.libelle}</span>${c.aide ? `<span class="petit">${c.aide}</span>` : ''}</legend>
+            (c, i) => `<fieldset class="critere${i === 0 ? ' principal' : ''}"${i === 0 && erreurs.notes ? ' aria-describedby="err-notes"' : ''}>
+              <legend><span class="etiquette">${c.libelle}${i === 0 ? ` <span data-etoile-lu>${etoileObligatoire}</span>` : ''}</span>${c.aide ? `<span class="petit">${c.aide}</span>` : ''}</legend>
               <div class="choix">
                 ${[1, 2, 3, 4, 5]
                   .map(
@@ -118,17 +133,17 @@ function afficherFormulaire(v, erreurs) {
             </fieldset>`,
           ).join('')}
         </div>
-        ${erreurs.notes ? `<p class="erreur" role="alert">${esc(erreurs.notes)}</p>` : ''}
+        ${erreurs.notes ? `<p class="erreur" role="alert" id="err-notes">${esc(erreurs.notes)}</p>` : ''}
       </div>
 
       <fieldset class="champ" data-si-statut="lu en-cours abandonne">
         <legend>Dates et durée calculée</legend>
         <div class="dates">
           <div class="champ"><label for="debut">Début de lecture</label><input id="debut" name="debut" type="date" value="${esc(v.debut)}"></div>
-          <div class="champ" data-si-statut="lu abandonne"><label for="fin" data-libelle-fin>Fin de lecture</label><input id="fin" name="fin" type="date" value="${esc(v.fin)}"${erreurs.dates ? ' aria-invalid="true"' : ''}></div>
+          <div class="champ" data-si-statut="lu abandonne"><label for="fin"><span data-libelle-fin>Fin de lecture</span> <span data-etoile-lu>${etoileObligatoire}</span></label><input id="fin" name="fin" type="date" value="${esc(v.fin)}"${erreurs.dates ? ' aria-invalid="true" aria-describedby="err-dates"' : ''}></div>
           <div class="duree num" aria-live="polite" data-duree><b>${duree ? nombre(duree) : '–'}</b><span class="petit">${duree === 1 ? 'jour' : 'jours'} de lecture</span></div>
         </div>
-        <p class="erreur" role="alert" data-erreur-dates${erreurs.dates ? '' : ' hidden'}>${esc(erreurs.dates)}</p>
+        <p class="erreur" role="alert" id="err-dates" data-erreur-dates${erreurs.dates ? '' : ' hidden'}>${esc(erreurs.dates)}</p>
       </fieldset>
 
       ${erreurs.general ? `<p class="alerte" role="alert">${esc(erreurs.general)}</p>` : ''}
@@ -139,7 +154,10 @@ function afficherFormulaire(v, erreurs) {
     </div>
   </form>`;
   brancher(zone.querySelector('form'));
-  zone.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (erreurs.livre) (zone.querySelector('.manuel:not([hidden]) #titre') ?? zone.querySelector('#recherche'))?.focus();
+  else if (erreurs.notes) zone.querySelector('#note_generale-1')?.focus();
+  else if (erreurs.dates) zone.querySelector('#fin')?.focus();
+  else zone.querySelector('[role="alert"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
 // =============================================================================
@@ -161,7 +179,8 @@ function brancher(form) {
     $('.manuel').hidden = etat !== 'manuel';
   }
   function vider() {
-    for (const n of ['titre', 'auteur', 'annee', 'pages', 'ol_key', 'couverture_id']) champ(n).value = '';
+    for (const n of ['titre', 'auteur', 'annee', 'pages', 'ol_key', 'couverture_id', 'langue']) champ(n).value = '';
+    $('#aide-genre').hidden = true;
   }
   form.querySelectorAll('[data-vers]').forEach((b) =>
     b.addEventListener('click', () => {
@@ -186,7 +205,7 @@ function brancher(form) {
           .map(
             (r, i) => `<button type="button" class="sug" role="option" id="sug-${i}" data-i="${i}" aria-selected="false">
               ${couverture(sourceCouverture(r), ['caput', 'slate', 'coffee', 'nuit', 'tan'][i % 5], '', 'S')}
-              <span><b>${surligner(r.titre, q)}</b><span class="petit">${surligner(r.auteur, q)}${r.annee ? ` · ${r.annee}` : ''}<span class="source"> · ${r.source}</span></span></span>
+              <span><b${r.langue && r.langue !== 'fr' ? ` lang="${r.langue}"` : ''}>${surligner(r.titre, q)}</b><span class="petit">${surligner(r.auteur, q)}${r.annee ? ` · ${r.annee}` : ''}<span class="source"> · ${r.source}</span></span></span>
             </button>`,
           )
           .join('')
@@ -252,7 +271,11 @@ function brancher(form) {
     champ('pages').value = r.pages ?? '';
     champ('ol_key').value = r.olKey;
     champ('couverture_id').value = r.couvertureId ?? '';
-    if (r.genre && !champ('genre').value) champ('genre').value = r.genre;
+    champ('langue').value = r.langue ?? '';
+    if (r.genre && !champ('genre').value) {
+      champ('genre').value = r.genre;
+      $('#aide-genre').hidden = false;
+    }
     $('[data-choisi-titre]').textContent = r.titre;
     $('[data-choisi-meta]').textContent = [r.auteur, r.annee, r.pages ? `${nombre(r.pages)} pages` : null].filter(Boolean).join(' · ');
     $('[data-choisi-couv]').innerHTML = couverture(sourceCouverture(r), champ('couleur').value || 'caput', r.titre, 'M');
@@ -267,6 +290,8 @@ function brancher(form) {
     const statut = form.querySelector('input[name="statut"]:checked')?.value ?? 'lu';
     form.querySelectorAll('[data-si-statut]').forEach((el) => (el.hidden = !el.dataset.siStatut.split(' ').includes(statut)));
     $('[data-libelle-fin]').textContent = statut === 'abandonne' ? 'Arrêt de la lecture' : 'Fin de lecture';
+    form.querySelectorAll('[data-etoile-lu]').forEach((el) => (el.hidden = statut !== 'lu'));
+    champ('fin').setAttribute('aria-required', String(statut === 'lu'));
     majDuree();
   }
   form.querySelectorAll('input[name="statut"]').forEach((r) => r.addEventListener('change', majStatut));
@@ -285,7 +310,9 @@ function brancher(form) {
       err.textContent = MESSAGE_ORDRE;
       err.hidden = false;
     } else if (err.textContent === MESSAGE_ORDRE) err.hidden = true;
-    champ('fin').setAttribute('aria-invalid', String(invalide));
+    champ('fin').setAttribute('aria-invalid', String(invalide || (!err.hidden && Boolean(err.textContent))));
+    if (err.hidden) champ('fin').removeAttribute('aria-describedby');
+    else champ('fin').setAttribute('aria-describedby', 'err-dates');
   }
   champ('debut').addEventListener('input', majDuree);
   champ('fin').addEventListener('input', majDuree);
@@ -298,12 +325,13 @@ function brancher(form) {
     if (Object.keys(erreurs).length) return afficherFormulaire(valeurs, erreurs);
     const bouton = form.querySelector('button[type="submit"]');
     bouton.disabled = true;
+    const avertissement = (r) => (r.sansFormat && valeurs.format ? ' Le format n’a pas pu être gardé : la mise à jour de la base reste à faire.' : '');
     if (lecture) {
-      const { error } = await sb.from('lectures').update({ ...valeurs, couleur: lecture.couleur }).eq('id', lecture.id);
-      if (!error) return aller(`lecture.html?id=${encodeURIComponent(lecture.id)}`, 'Modifications enregistrées.');
+      const r = await ecrireLecture((x) => sb.from('lectures').update({ ...x, couleur: lecture.couleur }).eq('id', lecture.id), valeurs);
+      if (!r.error) return aller(`lecture.html?id=${encodeURIComponent(lecture.id)}`, 'Modifications enregistrées.' + avertissement(r));
     } else {
-      const { error } = await sb.from('lectures').insert(valeurs);
-      if (!error) return aller('index.html', 'Lecture enregistrée.');
+      const r = await ecrireLecture((x) => sb.from('lectures').insert(x), valeurs);
+      if (!r.error) return aller('index.html', 'Lecture enregistrée.' + avertissement(r));
     }
     bouton.disabled = false;
     toast('La lecture n’a pas pu être enregistrée. Réessaie dans un instant.');

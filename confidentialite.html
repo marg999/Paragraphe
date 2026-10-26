@@ -12,7 +12,7 @@
       // Retour d'un lien reçu par e-mail : on note son type avant que Supabase ne nettoie l'adresse.
       window.lienEmail = { recuperation: /type=recovery/.test(location.hash), erreur: /error_code=/.test(location.hash + location.search) };
     </script>
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
@@ -27,7 +27,8 @@
         <h2 class="titre-2">Ce qui est enregistré</h2>
         <p>Ton adresse e-mail et ton prénom (pour te connecter), puis les livres que tu ajoutes : titre, auteur, dates, notes, commentaires et relectures, ainsi que ton objectif annuel.</p>
         <h2 class="titre-2">Qui peut les voir</h2>
-        <p>Toi seul. Chaque carnet est protégé au niveau de la base de données : une personne connectée ne peut lire que ses propres lectures.</p>
+        <p>Les autres lecteurs ne voient jamais ton carnet : chaque carnet est protégé au niveau de la base de données, et une personne connectée ne peut lire que ses propres lectures.</p>
+        <p>L’administrateur du site peut techniquement accéder aux données, comme tout hébergeur de service en ligne. Il s’engage à ne pas les consulter, sauf pour résoudre un problème technique que tu lui signales.</p>
         <h2 class="titre-2">Où elles sont stockées</h2>
         <p>Chez Supabase, l’hébergeur de la base de données. La recherche de livres interroge Open Library et Google Books avec le texte que tu tapes, sans transmettre ton identité ni le contenu de ton carnet. Ta session et ton choix de thème sont gardés dans ton navigateur.</p>
         <h2 class="titre-2">Tes droits</h2>
@@ -35,7 +36,7 @@
       </div>
     </main>
     <footer class="pied" id="pied"></footer>
-    <script type="module" src="simple.js?v=3"></script>
+    <script type="module" src="simple.js?v=4"></script>
     <script>
       // Filet de sécurité : si le site ne démarre pas (fichier manquant ou ancienne version en cache), on l'explique.
       setTimeout(function () {
