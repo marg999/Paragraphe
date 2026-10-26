@@ -1,8 +1,8 @@
 // Ajouter une lecture (ajouter.html) ou la modifier (ajouter.html?id=…, avec &terminer=1 pour « Terminer et noter »).
 import {
   demarrer, sb, esc, sourceCouverture, nombre, jours, icone, couverture, surligner, aujourdhui, parametre, aller, toast,
-  STATUTS, CRITERES, NOMS_GENRES, FORMATS, lireFormulaire, rechercherLivres, titreHtml, ecrireLecture,
-} from './app.js?v=4';
+  STATUTS, CRITERES, NOMS_GENRES, FORMATS, lireFormulaire, rechercherLivres, titreHtml, ecrireLecture, empreinte,
+} from './app.js?v=6';
 
 await demarrer({ prive: true, actif: 'ajouter' });
 const main = document.getElementById('contenu');
@@ -53,9 +53,12 @@ function afficherFormulaire(v, erreurs) {
         <div class="recherche">
           <div class="avec-icone">${icone('recherche')}
             <input id="recherche" type="search" autocomplete="off" placeholder="Ex. Les Misérables, Dumas…" role="combobox"
-              aria-expanded="false" aria-controls="suggestions" aria-autocomplete="list" aria-required="true"${erreurs.livre ? ' aria-invalid="true"' : ''}${decrit('etat-recherche', erreurs.livre && 'err-livre')}>
+              aria-expanded="false" aria-controls="liste-sug" aria-autocomplete="list" aria-required="true"${erreurs.livre ? ' aria-invalid="true"' : ''}${decrit('etat-recherche', erreurs.livre && 'err-livre')}>
           </div>
-          <div class="suggestions" id="suggestions" role="listbox" aria-label="Livres trouvés" hidden></div>
+          <div class="suggestions" id="suggestions" hidden>
+            <div role="listbox" id="liste-sug" aria-label="Livres trouvés"></div>
+            <button type="button" class="plus-resultats" hidden>Voir plus de résultats</button>
+          </div>
         </div>
         <p class="aide" id="etat-recherche" aria-live="polite"></p>
       </div>
@@ -165,7 +168,11 @@ function brancher(form) {
   const $ = (s) => form.querySelector(s);
   const champ = (nom) => form.elements.namedItem(nom);
   const recherche = $('#recherche');
-  const liste = $('#suggestions');
+  const boite = $('#suggestions');
+  const liste = $('#liste-sug');
+  const boutonPlus = $('.plus-resultats');
+  let page = 0;
+  let qCourante = '';
   const etatRecherche = $('#etat-recherche');
   let resultats = [];
   let actif = -1;
@@ -192,9 +199,9 @@ function brancher(form) {
     }),
   );
 
-  // ---- Recherche de livres (Open Library + Google Books) ----
+  // ---- Recherche de livres (Open Library + Google Books + BnF) ----
   function fermer() {
-    liste.hidden = true;
+    boite.hidden = true;
     recherche.setAttribute('aria-expanded', 'false');
     recherche.removeAttribute('aria-activedescendant');
     actif = -1;
@@ -210,7 +217,7 @@ function brancher(form) {
           )
           .join('')
       : `<p class="aucun">Aucun livre trouvé pour « ${esc(q)} ». Vérifie l’orthographe, ou ajoute-le manuellement.</p>`;
-    liste.hidden = false;
+    boite.hidden = false;
     recherche.setAttribute('aria-expanded', 'true');
   }
   async function chercher() {
@@ -225,7 +232,11 @@ function brancher(form) {
     const minuterie = setTimeout(() => controleur.abort(), 9000);
     etatRecherche.textContent = 'Recherche…';
     try {
-      resultats = await rechercherLivres(q, controleur.signal);
+      const r = await rechercherLivres(q, controleur.signal, 0);
+      page = 0;
+      qCourante = q;
+      resultats = r.livres;
+      boutonPlus.hidden = !r.encore || !resultats.length;
       etatRecherche.textContent = resultats.length ? `${resultats.length} livres trouvés.` : '';
       rendre(q);
     } catch (e) {
@@ -236,6 +247,28 @@ function brancher(form) {
       clearTimeout(minuterie);
     }
   }
+  boutonPlus.addEventListener('click', async () => {
+    boutonPlus.disabled = true;
+    boutonPlus.textContent = 'Chargement…';
+    try {
+      const r = await rechercherLivres(qCourante, undefined, page + 1);
+      page += 1;
+      const deja = new Set(resultats.map(empreinte));
+      const nouveaux = r.livres.filter((x) => !deja.has(empreinte(x)));
+      resultats = [...resultats, ...nouveaux];
+      const avant = liste.scrollTop;
+      rendre(qCourante);
+      boite.scrollTop = boite.scrollHeight;
+      liste.scrollTop = avant;
+      boutonPlus.hidden = !r.encore || !nouveaux.length;
+      etatRecherche.textContent = nouveaux.length ? `${nouveaux.length} livres de plus, ${resultats.length} au total.` : 'Pas d’autre résultat.';
+    } catch {
+      etatRecherche.textContent = 'Impossible de charger plus de résultats pour le moment.';
+    } finally {
+      boutonPlus.disabled = false;
+      boutonPlus.textContent = 'Voir plus de résultats';
+    }
+  });
   recherche.addEventListener('input', () => {
     clearTimeout(minuteur);
     minuteur = setTimeout(chercher, 300);
@@ -248,7 +281,7 @@ function brancher(form) {
       if (actif >= 0) choisir(actif);
       return;
     }
-    if (liste.hidden || !items.length || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
+    if (boite.hidden || !items.length || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
     e.preventDefault();
     actif = (actif + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
     items.forEach((it, i) => it.setAttribute('aria-selected', String(i === actif)));

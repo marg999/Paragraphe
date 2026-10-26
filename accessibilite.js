@@ -1,5 +1,5 @@
 // Déclaration d'accessibilité (modèle du RGAA, version 4.1).
-import { demarrer, esc } from './app.js?v=4';
+import { demarrer, esc } from './app.js?v=6';
 import * as config from './config.js';
 
 await demarrer({ actif: '' });
@@ -27,7 +27,7 @@ document.getElementById('contenu').innerHTML = `<div class="conteneur etroit pag
 
   <h2 class="titre-2">Contenus qui peuvent poser problème</h2>
   <ul class="liste-texte">
-    <li>Les couvertures et une partie des informations des livres viennent d’Open Library et de Google Books. Leur qualité (titres, textes alternatifs, langue) ne dépend pas de Paragraphe.</li>
+    <li>Les couvertures et une partie des informations des livres viennent d’Open Library, de Google Books, de Wikidata et du catalogue de la BnF. Leur qualité (titres, textes alternatifs, langue) ne dépend pas de Paragraphe.</li>
     <li>La langue d’un titre étranger ne peut pas toujours être déterminée, notamment pour les livres ajoutés à la main.</li>
     <li>Le calendrier de lecture de la page « Mes bilans » s’appuie sur la couleur ; le détail de chaque jour est disponible pour les lecteurs d’écran et au survol.</li>
   </ul>

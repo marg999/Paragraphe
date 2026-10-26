@@ -119,6 +119,10 @@ export const symbole = (classe = '') =>
  * - autre chose (ou rien) = pas de couverture, on affiche la couverture aux couleurs de Paragraphe.
  */
 export function urlCouverture(id, taille = 'M') {
+  if (typeof id === 'string' && (id.startsWith('bnf:') || id.startsWith('wd:'))) {
+    const isbn = id.split('|')[1];
+    return isbn ? `https://covers.openlibrary.org/b/isbn/${encodeURIComponent(isbn)}-${taille}.jpg?default=false` : null;
+  }
   if (typeof id === 'string' && id.startsWith('gb:')) {
     const zoom = taille === 'L' ? 2 : 1;
     return `https://books.google.com/books/content?id=${encodeURIComponent(id.slice(3))}&printsec=frontcover&img=1&zoom=${zoom}`;
@@ -133,6 +137,14 @@ export function lienSource(cle) {
   if (!cle) return null;
   if (cle.startsWith('gb:')) return { url: `https://books.google.com/books?id=${encodeURIComponent(cle.slice(3))}`, nom: 'Google Books' };
   if (cle.startsWith('/works/')) return { url: `https://openlibrary.org${cle}`, nom: 'Open Library' };
+  if (cle.startsWith('wd:')) {
+    const q = cle.slice(3).split('|')[0];
+    if (/^Q\d+$/.test(q)) return { url: `https://www.wikidata.org/wiki/${q}`, nom: 'Wikidata' };
+  }
+  if (cle.startsWith('bnf:')) {
+    const ark = cle.slice(4).split('|')[0];
+    if (/^[a-z0-9]+$/i.test(ark)) return { url: `https://catalogue.bnf.fr/ark:/12148/${ark}`, nom: 'le catalogue de la BnF' };
+  }
   return null;
 }
 export function couverture(id, couleur = 'caput', titre = '', taille = 'M') {
@@ -290,7 +302,7 @@ function entete(user, actif) {
     <div class="conteneur pied-contenu">
       ${logo(18)}
       <span>Ton carnet de lecture privé : note, commente, retrouve chaque livre lu.</span>
-      <span>Recherche de livres grâce à <a href="https://openlibrary.org" rel="noopener">Open Library</a> et <a href="https://books.google.com" rel="noopener">Google Books</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="accessibilite.html">Accessibilité : partiellement conforme</a></span>
+      <span>Recherche de livres grâce à <a href="https://openlibrary.org" rel="noopener">Open Library</a>, <a href="https://books.google.com" rel="noopener">Google Books</a>, la <a href="https://catalogue.bnf.fr" rel="noopener">BnF</a> et <a href="https://www.wikidata.org" rel="noopener">Wikidata</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="accessibilite.html">Accessibilité : partiellement conforme</a></span>
     </div>`;
 }
 
@@ -311,9 +323,9 @@ export function devinerGenre(sujets, annee) {
   const seuil = Math.min(2, s.length);
   const fiction = n('fiction', 'novel', 'roman', 'love stories', 'short stories', 'nouvelles');
   const specifiques = [
-    ['Bande dessinée', n('comic', 'bande dessinée', 'graphic novel', 'manga') * 2],
-    ['Jeunesse', n('juvenile', 'children', 'jeunesse', 'young adult')],
-    ['Policier', n('detective', 'mystery', 'crime', 'policier', 'thriller', 'murder', 'suspense')],
+    ['Bande dessinée', n('comic', 'bande dessinée', 'bandes dessinées', 'graphic novel', 'manga', 'roman graphique') * 2],
+    ['Jeunesse', n('juvenile', 'children', 'jeunesse', 'young adult', 'livres pour enfants')],
+    ['Policier', n('detective', 'mystery', 'crime', 'policier', 'policiers', 'thriller', 'murder', 'suspense', 'enquêtes')],
     ['Science-fiction', n('science fiction', 'science-fiction', 'dystopia', 'space opera')],
     ['Fantasy', n('fantasy', 'fantastique', 'magic', 'dragons')],
   ].sort((a, b) => b[1] - a[1]);
@@ -322,7 +334,7 @@ export function devinerGenre(sujets, annee) {
   if (classique || (fiction && annee && annee < 1930)) return 'Classiques';
   if (fiction) return n('adventure', 'aventure', 'sea stories') >= seuil ? 'Aventure' : 'Romans';
   const autres = [
-    ['Biographie', n('biography', 'biographie', 'autobiography', 'memoir', 'mémoires')],
+    ['Biographie', n('biography', 'biographie', 'biographies', 'autobiography', 'memoir', 'mémoires', 'autobiographie')],
     ['Poésie', n('poetry', 'poésie', 'poems', 'poèmes')],
     ['Théâtre', n('drama', 'théâtre', 'plays', 'tragedies', 'comedies')],
     ['Histoire', n('history', 'histoire')],
@@ -398,6 +410,94 @@ async function rechercherGoogle(texte, signal, extra = {}) {
     .filter(Boolean);
 }
 
+// ---------------------------------------------------------------- BnF (via la fonction Supabase « recherche-livres »)
+let bnfAbsente = false;
+/**
+ * Le catalogue de la BnF n'accepte pas les appels directs depuis un navigateur :
+ * on passe par une petite fonction installée dans Supabase (voir le guide).
+ * Si elle n'est pas installée, on l'ignore sans bloquer la recherche.
+ */
+async function rechercherBnf(texte, page = 0) {
+  if (bnfAbsente || !sb) return [];
+  const delai = new Promise((_, refuse) => setTimeout(() => refuse(new Error('La BnF met trop de temps à répondre')), 10000));
+  const { data, error } = await Promise.race([sb.functions.invoke('recherche-livres', { body: { q: texte, page } }), delai]);
+  if (error) {
+    if (error.context?.status === 404) bnfAbsente = true;
+    throw error;
+  }
+  return (Array.isArray(data) ? data : [])
+    .filter((d) => d && d.titre)
+    .map((d) => ({
+      olKey: `bnf:${d.ark ?? ''}${d.isbn ? `|${d.isbn}` : ''}`.slice(0, 80),
+      titre: String(d.titre).slice(0, 300),
+      auteur: String(d.auteur || 'Auteur inconnu').slice(0, 300),
+      annee: Number.isFinite(d.annee) ? d.annee : null,
+      pages: Number.isFinite(d.pages) ? d.pages : null,
+      couvertureId: null,
+      aCouverture: false,
+      genre: devinerGenre(d.sujets, null),
+      langue: /^[a-z]{2}$/.test(d.langue ?? '') ? d.langue : null,
+      source: 'BnF',
+    }));
+}
+
+// ---------------------------------------------------------------- Wikidata
+const WD = 'https://www.wikidata.org/w/api.php';
+// On garde les fiches qui décrivent un livre, et on écarte films, séries, personnages…
+const WD_LIVRE = /(roman|livre|album|bande dessinée|bd\b|manga|essai|recueil|nouvelle|pièce|poème|poésie|conte|œuvre littéraire|ouvrage|biographie|autobiographie|novel|book|comic|graphic)/i;
+const WD_EXCLU = /(film|téléfilm|série télévisée|série d'animation|jeu vidéo|personnage|chanson|épisode|groupe de|commune|famille|maison d'édition|éditeur|magazine|revue|périodique|dessin animé|émission|spectacle|comédie musicale)/i;
+// « série de bande dessinée », « saga… » : c'est la série entière, pas un livre.
+const WD_SERIE = /^(série|saga|cycle|trilogie|franchise|univers)\b/i;
+async function wdApi(params, signal) {
+  const rep = await fetch(`${WD}?${new URLSearchParams({ ...params, format: 'json', origin: '*' })}`, { signal: signal ?? AbortSignal.timeout(8000) });
+  if (!rep.ok) throw new Error(`Wikidata a répondu ${rep.status}`);
+  return rep.json();
+}
+const wdValeurs = (entite, prop) => (entite?.claims?.[prop] ?? []).map((c) => c.mainsnak?.datavalue?.value).filter(Boolean);
+async function rechercherWikidata(texte, signal, page = 0) {
+  const recherche = await wdApi(
+    { action: 'wbsearchentities', search: texte, language: 'fr', uselang: 'fr', type: 'item', limit: '30', continue: String(page * 30) },
+    signal,
+  );
+  const candidats = (recherche.search ?? [])
+    .filter((r) => {
+      const d = r.description ?? '';
+      return WD_LIVRE.test(d) && !WD_EXCLU.test(d) && !WD_SERIE.test(d.trim());
+    })
+    .slice(0, 20);
+  if (!candidats.length) return [];
+  const { entities = {} } = await wdApi({ action: 'wbgetentities', ids: candidats.map((c) => c.id).join('|'), props: 'claims|labels', languages: 'fr|en' }, signal);
+  const idsAuteurs = [...new Set(Object.values(entities).flatMap((e) => [...wdValeurs(e, 'P50'), ...wdValeurs(e, 'P170'), ...wdValeurs(e, 'P110')].map((v) => v.id)))].slice(0, 50);
+  const noms = idsAuteurs.length
+    ? (await wdApi({ action: 'wbgetentities', ids: idsAuteurs.join('|'), props: 'labels', languages: 'fr|en' }, signal)).entities ?? {}
+    : {};
+  const nom = (id) => noms[id]?.labels?.fr?.value ?? noms[id]?.labels?.en?.value ?? null;
+  return candidats
+    .map((c) => {
+      const e = entities[c.id];
+      if (!e) return null;
+      const titre = e.labels?.fr?.value ?? c.label ?? e.labels?.en?.value;
+      if (!titre) return null;
+      const auteurs = [...wdValeurs(e, 'P50'), ...wdValeurs(e, 'P170'), ...wdValeurs(e, 'P110')].map((v) => nom(v.id)).filter(Boolean);
+      const annee = Number(String(wdValeurs(e, 'P577')[0]?.time ?? '').match(/^\+?(\d{4})/)?.[1]) || null;
+      const isbn = String(wdValeurs(e, 'P212')[0] ?? wdValeurs(e, 'P957')[0] ?? '').replace(/[^\dX]/gi, '') || null;
+      const pages = Number(String(wdValeurs(e, 'P1104')[0]?.amount ?? '').replace('+', '')) || null;
+      return {
+        olKey: `wd:${c.id}${isbn ? `|${isbn}` : ''}`,
+        titre: titre.slice(0, 300),
+        auteur: ([...new Set(auteurs)].slice(0, 2).join(', ') || 'Auteur inconnu').slice(0, 300),
+        annee,
+        pages,
+        couvertureId: null,
+        aCouverture: false,
+        genre: devinerGenre([c.description ?? ''], annee),
+        langue: e.labels?.fr ? 'fr' : null,
+        source: 'Wikidata',
+      };
+    })
+    .filter(Boolean);
+}
+
 /** Clé servant à repérer un même livre, quelle que soit sa source. */
 export const empreinte = (l) =>
   `${normaliser(l.titre).replace(/^(le|la|les|l|un|une|the) /, '').slice(0, 40)}|${normaliser(l.auteur).split(' ').pop()}`;
@@ -437,13 +537,24 @@ function fusionner(listes, max) {
 }
 
 /**
- * Recherche par titre ou auteur dans Open Library ET Google Books, en même temps.
+ * Recherche par titre ou auteur dans Open Library, Google Books, le catalogue de la BnF et Wikidata, en même temps.
  * La recherche n’échoue que si les deux sources sont injoignables.
  */
-export async function rechercherLivres(texte, signal) {
-  const [ol, gb] = await Promise.allSettled([interroger({ q: texte, limit: '8' }, signal), rechercherGoogle(texte, signal)]);
-  if (ol.status === 'rejected' && gb.status === 'rejected') throw ol.reason;
-  return fusionner([ol.status === 'fulfilled' ? ol.value : [], gb.status === 'fulfilled' ? gb.value : []], 12);
+const PAR_PAGE = 20;
+export async function rechercherLivres(texte, signal, page = 0) {
+  const sources = await Promise.allSettled([
+    interroger({ q: texte, limit: String(PAR_PAGE), offset: String(page * PAR_PAGE) }, signal),
+    rechercherGoogle(texte, signal, { maxResults: String(PAR_PAGE), startIndex: String(page * PAR_PAGE) }),
+    rechercherBnf(texte, page),
+    rechercherWikidata(texte, signal, page),
+  ]);
+  if (sources.every((x) => x.status === 'rejected')) throw sources[0].reason;
+  const listes = sources.map((x) => (x.status === 'fulfilled' ? x.value : []));
+  return {
+    livres: fusionner(listes, PAR_PAGE * 3),
+    // S'il reste des résultats dans au moins une source, on propose « Voir plus ».
+    encore: listes[0].length >= PAR_PAGE || listes[1].length >= PAR_PAGE || listes[2].length >= 15 || listes[3].length >= 10,
+  };
 }
 
 // ---------------------------------------------------------------- Recommandations

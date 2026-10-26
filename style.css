@@ -1,4 +1,4 @@
-@import url('polices.css?v=4');
+@import url('polices.css?v=6');
 
 /* ==========================================================================
    Paragraphe · styles globaux
@@ -1173,3 +1173,11 @@ input[aria-invalid='true'] {
 @media (max-width: 1023px) { .fiche-page .reco-grille { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .fiche-page .reco-grille { grid-template-columns: minmax(0, 1fr); } }
 .texte-simple .liste-texte { margin: 0; padding-left: 1.2em; display: grid; gap: var(--espace-2); max-width: 68ch; }
+.form-lecture .suggestions { max-height: 440px; }
+.form-lecture .plus-resultats {
+  appearance: none; border: 0; border-top: 1px solid var(--filet); background: var(--surface-profonde); cursor: pointer;
+  width: 100%; padding: var(--espace-3) var(--espace-4); font: 600 15px/20px var(--f-texte); color: var(--accent);
+  position: sticky; bottom: 0;
+}
+.form-lecture .plus-resultats:hover { text-decoration: underline; }
+.form-lecture .plus-resultats:disabled { cursor: wait; opacity: 0.7; }
