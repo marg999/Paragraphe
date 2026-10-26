@@ -13,7 +13,7 @@
       // Retour d'un lien reçu par e-mail : on note son type avant que Supabase ne nettoie l'adresse.
       window.lienEmail = { recuperation: /type=recovery/.test(location.hash), erreur: /error_code=/.test(location.hash + location.search) };
     </script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
@@ -25,6 +25,13 @@
       <p class="chargement conteneur" role="status">Chargement…</p>
     </main>
     <footer class="pied" id="pied"></footer>
-    <script type="module" src="mot-de-passe.js"></script>
+    <script type="module" src="mot-de-passe.js?v=3"></script>
+    <script>
+      // Filet de sécurité : si le site ne démarre pas (fichier manquant ou ancienne version en cache), on l'explique.
+      setTimeout(function () {
+        var c = document.querySelector('.chargement');
+        if (c && document.body.contains(c)) c.innerHTML = 'Le site n’a pas pu se charger. Recharge la page en forçant la mise à jour : <strong>Cmd + Maj + R</strong> sur Mac, <strong>Ctrl + Maj + R</strong> sur Windows. Si le problème continue, vérifie que tous les fichiers du site sont bien sur GitHub.';
+      }, 10000);
+    </script>
   </body>
 </html>

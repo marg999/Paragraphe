@@ -2,7 +2,7 @@
 import {
   demarrer, sb, esc, sourceCouverture, nombre, pluriel, dateFr, jours, icone, symbole, couverture, etoiles, pastille, composition,
   STATUTS, NOMS_GENRES, lusEn, genrePrefere, raisonRecommandation, recommander, normaliser, couleurAuHasard, toast, aller,
-} from './app.js';
+} from './app.js?v=3';
 
 const user = await demarrer({ actif: 'bibliotheque' });
 const main = document.getElementById('contenu');

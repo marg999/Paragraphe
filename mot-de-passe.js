@@ -1,6 +1,6 @@
 // Deux usages : demander un lien (mot de passe oublié) ou choisir un nouveau mot de passe
 // (après avoir cliqué sur le lien reçu, ou depuis « Mon compte »).
-import { demarrer, sb, cadreAuth, messageAuth, esc, aller } from './app.js';
+import { demarrer, sb, cadreAuth, messageAuth, esc, aller } from './app.js?v=3';
 
 const user = await demarrer({ actif: 'mot-de-passe' });
 const main = document.getElementById('contenu');

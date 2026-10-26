@@ -1,5 +1,5 @@
 // Mon compte : profil, mot de passe, export, suppression.
-import { demarrer, sb, esc, dateFr, icone, toast, sortir, STATUTS } from './app.js';
+import { demarrer, sb, esc, dateFr, icone, toast, sortir, STATUTS } from './app.js?v=3';
 
 const user = await demarrer({ prive: true, actif: 'compte' });
 const main = document.getElementById('contenu');

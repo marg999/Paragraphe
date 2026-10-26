@@ -1,7 +1,7 @@
 // Fiche d'un livre : lecture.html?id=…
 import {
   demarrer, sb, esc, sourceCouverture, lienSource, nombre, pluriel, dateFr, jours, aujourdhui, icone, couverture, etoiles, pastille, parametre, aller, toast, CRITERES,
-} from './app.js';
+} from './app.js?v=3';
 
 await demarrer({ prive: true, actif: 'bibliotheque' });
 const main = document.getElementById('contenu');

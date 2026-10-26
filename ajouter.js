@@ -2,7 +2,7 @@
 import {
   demarrer, sb, esc, sourceCouverture, nombre, jours, icone, couverture, surligner, aujourdhui, parametre, aller, toast,
   STATUTS, CRITERES, NOMS_GENRES, lireFormulaire, rechercherLivres,
-} from './app.js';
+} from './app.js?v=3';
 
 await demarrer({ prive: true, actif: 'ajouter' });
 const main = document.getElementById('contenu');

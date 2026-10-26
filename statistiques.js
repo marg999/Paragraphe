@@ -1,5 +1,5 @@
 // Mon année en lecture : statistiques.html?annee=2026
-import { demarrer, sb, esc, sourceCouverture, nombre, decimal, pluriel, dateFr, couverture, etoiles, parametre, bilan, MOIS_COURTS, CRITERES } from './app.js';
+import { demarrer, sb, esc, sourceCouverture, nombre, decimal, pluriel, dateFr, couverture, etoiles, parametre, bilan, MOIS_COURTS, CRITERES } from './app.js?v=3';
 
 await demarrer({ prive: true, actif: 'statistiques' });
 const main = document.getElementById('contenu');
