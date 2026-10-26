@@ -89,6 +89,14 @@ export const parametre = (nom) => new URLSearchParams(location.search).get(nom);
 
 // ---------------------------------------------------------------- Éléments visuels
 const ICONES = {
+  etoile: '<path d="M12 2.5l2.94 5.96 6.56.95-4.75 4.63 1.12 6.54L12 17.5l-5.87 3.08 1.12-6.54L2.5 9.41l6.56-.95z"/>',
+  cible: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  ampoule: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+  calendrier: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  cadenas: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  coeur: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  coche: '<path d="M20 6 9 17l-5-5"/>',
+  aide: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
   livre: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
   codebarres: '<path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/>',
   bilans: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
@@ -337,7 +345,7 @@ function entete(user, actif) {
     <div class="conteneur pied-contenu">
       ${logo(18)}
       <span>Ton carnet de lecture privé : note, commente, retrouve chaque livre lu.</span>
-      <span>Recherche de livres grâce à <a href="https://openlibrary.org" rel="noopener">Open Library</a>, <a href="https://books.google.com" rel="noopener">Google Books</a>, la <a href="https://catalogue.bnf.fr" rel="noopener">BnF</a> et <a href="https://www.wikidata.org" rel="noopener">Wikidata</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="accessibilite.html">Accessibilité : partiellement conforme</a></span>
+      <span>Recherche de livres grâce à <a href="https://openlibrary.org" rel="noopener">Open Library</a>, <a href="https://books.google.com" rel="noopener">Google Books</a>, la <a href="https://catalogue.bnf.fr" rel="noopener">BnF</a> et <a href="https://www.wikidata.org" rel="noopener">Wikidata</a> · <a href="guide.html">Comment ça marche</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="accessibilite.html">Accessibilité : partiellement conforme</a></span>
     </div>`;
 }
 

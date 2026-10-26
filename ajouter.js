@@ -2,7 +2,7 @@
 import {
   demarrer, sb, esc, sourceCouverture, nombre, jours, icone, couverture, surligner, aujourdhui, parametre, aller, toast,
   STATUTS, CRITERES, NOMS_GENRES, FORMATS, lireFormulaire, rechercherLivres, titreHtml, ecrireLecture, empreinte, isbnValide,
-} from './app.js?v=7';
+} from './app.js?v=8';
 
 await demarrer({ prive: true, actif: 'ajouter' });
 const main = document.getElementById('contenu');
@@ -62,6 +62,7 @@ function afficherFormulaire(v, erreurs) {
         </div>
         <p class="aide" id="etat-recherche" aria-live="polite"></p>
         <button type="button" class="btn btn-secondaire btn-scan" data-scanner hidden>${icone('codebarres')}Scanner le code-barres</button>
+        <p class="aide">Tu ne trouves pas ton livre ? <a href="guide.html#trouver">Nos conseils</a></p>
       </div>
       <button type="button" class="btn btn-lien btn-manuel" data-vers="manuel"${etat !== 'recherche' ? ' hidden' : ''}>Livre introuvable ? Ajouter manuellement</button>
 
@@ -284,7 +285,7 @@ function brancher(form) {
       ? Promise.resolve()
       : new Promise((ok, ko) => {
           const script = document.createElement('script');
-          script.src = 'zxing.js?v=7';
+          script.src = 'zxing.js?v=8';
           script.onload = ok;
           script.onerror = () => ko(new Error('Lecteur de code-barres indisponible'));
           document.head.append(script);

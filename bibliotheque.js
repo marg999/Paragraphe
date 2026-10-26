@@ -3,7 +3,7 @@ import {
   demarrer, sb, esc, sourceCouverture, nombre, pluriel, dateFr, jours, icone, symbole, couverture, etoiles, pastille, composition,
   STATUTS, NOMS_GENRES, lusEn, recommanderAccueil, normaliser, couleurAuHasard, toast, aller, titreHtml, ecrireLecture,
   etatInstallation, installer, aideIphone,
-} from './app.js?v=7';
+} from './app.js?v=8';
 
 const user = await demarrer({ actif: 'bibliotheque' });
 const main = document.getElementById('contenu');
@@ -25,6 +25,7 @@ function accueil() {
         <div class="actions">
           <a class="btn btn-principal" href="inscription.html">Créer mon carnet</a>
           <a class="btn btn-secondaire" href="connexion.html">Me connecter</a>
+          <a class="btn btn-lien" href="guide.html">Comment ça marche ?</a>
         </div>
       </div>
       ${composition('compo-hero')}
@@ -86,6 +87,7 @@ async function bibliotheque() {
       <div><h1 class="titre-1">Ma bibliothèque</h1><p class="petit" id="resume"></p></div>
       <a class="btn btn-principal" href="ajouter.html">${icone('plus')}Ajouter un livre</a>
     </div>
+    <div id="bien-commencer"></div>
     <div id="invitation-appli"></div>
     <div class="duo">
       <section class="carte objectif" id="objectif" aria-labelledby="titre-objectif"></section>
@@ -97,8 +99,65 @@ async function bibliotheque() {
   rendreObjectif();
   rendreListe();
   chargerReco();
+  bienCommencer();
   invitationAppli();
-  document.addEventListener('installation-possible', invitationAppli);
+  document.addEventListener('installation-possible', () => {
+    bienCommencer();
+    invitationAppli();
+  });
+
+  // ---------------------------------------------------------------- Accueil des nouveaux inscrits
+  function bienCommencer() {
+    const zone = document.getElementById('bien-commencer');
+    let masque = false;
+    try {
+      masque = localStorage.getItem('paragraphe-bien-commencer') === 'non';
+    } catch {}
+    const installee = etatInstallation() === 'installee';
+    const etapes = [
+      { fait: etat.livres.length > 0, titre: 'Ajoute ton premier livre', texte: 'Commence par tes 3 ou 4 dernières lectures.', action: `<a class="btn btn-principal btn-petit" href="ajouter.html">${icone('plus')}Ajouter un livre</a>` },
+      { fait: etat.objectif !== null, titre: 'Fixe ton objectif de l’année', texte: 'Combien de livres veux-tu lire en ' + annee + ' ?', action: '<button class="btn btn-secondaire btn-petit" type="button" data-ouvrir-objectif>Choisir mon objectif</button>' },
+      { fait: installee, titre: 'Installe l’application', texte: 'Paragraphe sur ton écran d’accueil, comme une vraie appli.', action: '<a class="btn btn-secondaire btn-petit" href="compte.html#application">Voir comment faire</a>' },
+    ];
+    const restantes = etapes.filter((e) => !e.fait).length;
+    if (masque || !restantes || etat.livres.length >= 5) {
+      zone.innerHTML = '';
+      return;
+    }
+    zone.innerHTML = `<section class="carte bien-commencer" aria-labelledby="t-bien-commencer">
+      <div class="bc-tete">
+        <div>
+          <h2 class="titre-2" id="t-bien-commencer">Bienvenue dans ton carnet</h2>
+          <p class="petit">${etapes.length - restantes} sur ${etapes.length} étapes faites · <a href="guide.html">Comment ça marche ?</a></p>
+        </div>
+        <button class="btn btn-lien btn-petit" type="button" data-masquer>Masquer</button>
+      </div>
+      <ol class="bc-etapes">
+        ${etapes
+          .map(
+            (e) => `<li class="${e.fait ? 'fait' : ''}">
+              <span class="bc-coche" aria-hidden="true">${e.fait ? icone('coche', 16) : ''}</span>
+              <div class="bc-texte"><p class="bc-titre">${e.titre}${e.fait ? '<span class="sr"> (fait)</span>' : ''}</p>${e.fait ? '' : `<p class="petit">${e.texte}</p>`}</div>
+              ${e.fait ? '' : `<div class="bc-action">${e.action}</div>`}
+            </li>`,
+          )
+          .join('')}
+      </ol>
+    </section>`;
+    zone.querySelector('[data-masquer]').addEventListener('click', () => {
+      try {
+        localStorage.setItem('paragraphe-bien-commencer', 'non');
+      } catch {}
+      zone.innerHTML = '';
+      toast('Le guide reste accessible en bas de chaque page.');
+    });
+    zone.querySelector('[data-ouvrir-objectif]')?.addEventListener('click', () => {
+      const details = document.querySelector('#objectif details');
+      details.open = true;
+      details.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      document.getElementById('objectif-nombre')?.focus();
+    });
+  }
 
   // ---------------------------------------------------------------- Invitation à installer l'application
   function invitationAppli() {
@@ -109,7 +168,7 @@ async function bibliotheque() {
     } catch {}
     const etat = etatInstallation();
     const telephone = matchMedia('(max-width: 767px), (pointer: coarse)').matches;
-    if (masquee || !telephone || (etat !== 'android' && etat !== 'iphone')) {
+    if (masquee || !telephone || (etat !== 'android' && etat !== 'iphone') || document.querySelector('#bien-commencer .bien-commencer')) {
       zone.innerHTML = '';
       return;
     }
@@ -167,6 +226,7 @@ async function bibliotheque() {
       if (error) return toast('L’objectif n’a pas pu être enregistré. Réessaie dans un instant.');
       etat.objectif = n;
       rendreObjectif();
+      bienCommencer();
       toast('Objectif mis à jour.');
     });
   }

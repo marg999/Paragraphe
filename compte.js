@@ -1,5 +1,5 @@
 // Mon compte : profil, mot de passe, export, suppression.
-import { demarrer, sb, esc, dateFr, icone, toast, sortir, STATUTS, etatInstallation, installer, aideIphone } from './app.js?v=7';
+import { demarrer, sb, esc, dateFr, icone, toast, sortir, STATUTS, etatInstallation, installer, aideIphone } from './app.js?v=8';
 
 const user = await demarrer({ prive: true, actif: 'compte' });
 const main = document.getElementById('contenu');
@@ -28,6 +28,12 @@ main.innerHTML = `<div class="conteneur etroit page compte-page">
   <section class="carte bloc" id="application" aria-labelledby="t-appli">
     <h2 class="titre-2" id="t-appli">Application</h2>
     <div id="zone-installation"></div>
+  </section>
+
+  <section class="carte bloc">
+    <h2 class="titre-2">Aide</h2>
+    <p class="petit">Tout ce que tu peux faire avec Paragraphe, et les réponses aux questions fréquentes.</p>
+    <a class="btn btn-secondaire" href="guide.html">${icone('aide')}Comment ça marche</a>
   </section>
 
   <section class="carte bloc">

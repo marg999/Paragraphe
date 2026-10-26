@@ -1,5 +1,5 @@
 // Déclaration d'accessibilité (modèle du RGAA, version 4.1).
-import { demarrer, esc } from './app.js?v=7';
+import { demarrer, esc } from './app.js?v=8';
 import * as config from './config.js';
 
 await demarrer({ actif: '' });
