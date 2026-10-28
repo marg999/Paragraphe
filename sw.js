@@ -4,7 +4,7 @@
 //  visibles même sans connexion. Les données (Supabase) ne sont jamais mises en cache.
 //  À chaque nouvelle version du site, on change VERSION pour tout rafraîchir.
 // =============================================================================
-const VERSION = 'paragraphe-v8';
+const VERSION = 'paragraphe-v9';
 const FICHIERS = [
   "./",
   "404.html",
@@ -19,20 +19,20 @@ const FICHIERS = [
   "lecture.html",
   "mot-de-passe.html",
   "statistiques.html",
-  "accessibilite.js?v=8",
-  "ajouter.js?v=8",
-  "app.js?v=8",
-  "bibliotheque.js?v=8",
-  "compte.js?v=8",
-  "connexion.js?v=8",
-  "guide.js?v=8",
-  "inscription.js?v=8",
-  "lecture.js?v=8",
-  "mot-de-passe.js?v=8",
-  "simple.js?v=8",
-  "statistiques.js?v=8",
-  "style.css?v=8",
-  "polices.css?v=8",
+  "accessibilite.js?v=9",
+  "ajouter.js?v=9",
+  "app.js?v=9",
+  "bibliotheque.js?v=9",
+  "compte.js?v=9",
+  "connexion.js?v=9",
+  "guide.js?v=9",
+  "inscription.js?v=9",
+  "lecture.js?v=9",
+  "mot-de-passe.js?v=9",
+  "simple.js?v=9",
+  "statistiques.js?v=9",
+  "style.css?v=9",
+  "polices.css?v=9",
   "supabase.js",
   "marque.js",
   "site.webmanifest",

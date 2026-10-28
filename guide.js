@@ -1,5 +1,5 @@
 // Comment ça marche : présentation de Paragraphe, accessible à tout le monde (connecté ou non).
-import { demarrer, icone, composition } from './app.js?v=8';
+import { demarrer, icone, composition } from './app.js?v=9';
 
 const user = await demarrer({ actif: 'guide' });
 

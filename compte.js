@@ -1,5 +1,5 @@
 // Mon compte : profil, mot de passe, export, suppression.
-import { demarrer, sb, esc, dateFr, icone, toast, sortir, STATUTS, etatInstallation, installer, aideIphone } from './app.js?v=8';
+import { demarrer, sb, esc, dateFr, icone, toast, sortir, STATUTS, etatInstallation, installer, aideIphone, carteSequence } from './app.js?v=9';
 
 const user = await demarrer({ prive: true, actif: 'compte' });
 const main = document.getElementById('contenu');
@@ -34,6 +34,11 @@ main.innerHTML = `<div class="conteneur etroit page compte-page">
     <h2 class="titre-2">Aide</h2>
     <p class="petit">Tout ce que tu peux faire avec Paragraphe, et les réponses aux questions fréquentes.</p>
     <a class="btn btn-secondaire" href="guide.html">${icone('aide')}Comment ça marche</a>
+  </section>
+
+  <section class="carte bloc">
+    <h2 class="titre-2">Tu veux la même chose pour les films ?</h2>
+    ${carteSequence()}
   </section>
 
   <section class="carte bloc">

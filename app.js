@@ -229,6 +229,21 @@ function choisirTheme(t) {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t === 'jour' ? '#EDE4D3' : '#1C283D');
 }
 
+// ---------------------------------------------------------------- Lien vers Séquence (le même carnet, pour les films et les séries)
+export const SEQUENCE_URL = 'https://marg999.github.io/S-quence/';
+const LOGO_SEQUENCE = `<svg class="seq-logo" viewBox="0 0 2400 2400" aria-hidden="true" focusable="false"><rect width="2400" height="2400" fill="#141414"></rect>
+  <path transform="translate(485 2080)" fill="#EFE8D8" d="M55 -1V-299H413V-1Z M964 16Q723 16 616.5 -104.0Q510 -224 510 -486V-658H858V-438Q858 -377 876.5 -342.5Q895 -308 941 -308Q989 -308 1007.5 -336.0Q1026 -364 1026 -428Q1026 -509 1010.0 -563.5Q994 -618 954.5 -667.5Q915 -717 845 -783L687 -933Q510 -1100 510 -1315Q510 -1540 614.5 -1658.0Q719 -1776 917 -1776Q1159 -1776 1260.5 -1647.0Q1362 -1518 1362 -1255H1004V-1376Q1004 -1412 983.5 -1432.0Q963 -1452 928 -1452Q886 -1452 866.5 -1428.5Q847 -1405 847 -1368Q847 -1331 867.0 -1288.0Q887 -1245 946 -1189L1149 -994Q1210 -936 1261.0 -871.5Q1312 -807 1343.0 -721.5Q1374 -636 1374 -513Q1374 -265 1282.5 -124.5Q1191 16 964 16Z"></path></svg>`;
+/** Carte « Et pour tes films ? » qui ouvre Séquence dans un nouvel onglet. */
+export function carteSequence() {
+  return `<a class="carte carte-sequence" href="${SEQUENCE_URL}" target="_blank" rel="noopener">
+    ${LOGO_SEQUENCE}
+    <span class="seq-texte"><span class="etiquette">Et pour tes films et tes séries ?</span>
+      <span class="seq-titre">Séquence</span>
+      <span class="petit">Le même carnet pour noter tes films et suivre tes séries, saison par saison.</span></span>
+    <span class="seq-fleche" aria-hidden="true">↗</span><span class="sr"> (s’ouvre dans un nouvel onglet)</span>
+  </a>`;
+}
+
 // ---------------------------------------------------------------- Mise en place d'une page
 /**
  * Prépare la page : en-tête, pied de page, session.
@@ -345,7 +360,7 @@ function entete(user, actif) {
     <div class="conteneur pied-contenu">
       ${logo(18)}
       <span>Ton carnet de lecture privé : note, commente, retrouve chaque livre lu.</span>
-      <span>Recherche de livres grâce à <a href="https://openlibrary.org" rel="noopener">Open Library</a>, <a href="https://books.google.com" rel="noopener">Google Books</a>, la <a href="https://catalogue.bnf.fr" rel="noopener">BnF</a> et <a href="https://www.wikidata.org" rel="noopener">Wikidata</a> · <a href="guide.html">Comment ça marche</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="accessibilite.html">Accessibilité : partiellement conforme</a></span>
+      <span>Recherche de livres grâce à <a href="https://openlibrary.org" rel="noopener">Open Library</a>, <a href="https://books.google.com" rel="noopener">Google Books</a>, la <a href="https://catalogue.bnf.fr" rel="noopener">BnF</a> et <a href="https://www.wikidata.org" rel="noopener">Wikidata</a> · <a href="guide.html">Comment ça marche</a> · <a href="${SEQUENCE_URL}" target="_blank" rel="noopener">Pour les films et séries : Séquence ↗</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="accessibilite.html">Accessibilité : partiellement conforme</a></span>
     </div>`;
 }
 

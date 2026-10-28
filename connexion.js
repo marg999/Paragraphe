@@ -1,4 +1,4 @@
-import { demarrer, sb, cadreAuth, messageAuth, pageSure, parametre, esc } from './app.js?v=8';
+import { demarrer, sb, cadreAuth, messageAuth, pageSure, parametre, esc } from './app.js?v=9';
 
 await demarrer({ invite: true, actif: 'connexion' });
 const suite = pageSure(parametre('suite'));

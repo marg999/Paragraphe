@@ -2,8 +2,8 @@
 import {
   demarrer, sb, esc, sourceCouverture, nombre, pluriel, dateFr, jours, icone, symbole, couverture, etoiles, pastille, composition,
   STATUTS, NOMS_GENRES, lusEn, recommanderAccueil, normaliser, couleurAuHasard, toast, aller, titreHtml, ecrireLecture,
-  etatInstallation, installer, aideIphone,
-} from './app.js?v=8';
+  etatInstallation, installer, aideIphone, carteSequence,
+} from './app.js?v=9';
 
 const user = await demarrer({ actif: 'bibliotheque' });
 const main = document.getElementById('contenu');
@@ -94,6 +94,7 @@ async function bibliotheque() {
       <section class="carte reco" id="reco" aria-label="Recommandation"><span class="etiquette">Recommandation</span><p class="petit">Recherche d’un livre pour toi…</p></section>
     </div>
     <div id="liste"></div>
+    ${carteSequence()}
   </div>`;
 
   rendreObjectif();

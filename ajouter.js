@@ -2,7 +2,7 @@
 import {
   demarrer, sb, esc, sourceCouverture, nombre, jours, icone, couverture, surligner, aujourdhui, parametre, aller, toast,
   STATUTS, CRITERES, NOMS_GENRES, FORMATS, lireFormulaire, rechercherLivres, titreHtml, ecrireLecture, empreinte, isbnValide,
-} from './app.js?v=8';
+} from './app.js?v=9';
 
 await demarrer({ prive: true, actif: 'ajouter' });
 const main = document.getElementById('contenu');
@@ -285,7 +285,7 @@ function brancher(form) {
       ? Promise.resolve()
       : new Promise((ok, ko) => {
           const script = document.createElement('script');
-          script.src = 'zxing.js?v=8';
+          script.src = 'zxing.js?v=9';
           script.onload = ok;
           script.onerror = () => ko(new Error('Lecteur de code-barres indisponible'));
           document.head.append(script);

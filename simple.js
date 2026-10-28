@@ -1,5 +1,5 @@
 // Pages sans contenu dynamique (confidentialité, page introuvable).
-import { demarrer, symbole } from './app.js?v=8';
+import { demarrer, symbole } from './app.js?v=9';
 
 document.querySelectorAll('svg.symb').forEach((el) => (el.outerHTML = symbole('symb')));
 demarrer({ actif: '' }).catch(() => {});

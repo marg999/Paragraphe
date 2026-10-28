@@ -2,7 +2,7 @@
 import {
   demarrer, sb, esc, nombre, decimal, pluriel, dateFr, jours, aujourdhui, couverture, etoiles, parametre, sourceCouverture, titreHtml,
   bilan, moyennes, genrePrefere, score, MOIS_COURTS, CRITERES, FORMATS,
-} from './app.js?v=8';
+} from './app.js?v=9';
 
 await demarrer({ prive: true, actif: 'statistiques' });
 const main = document.getElementById('contenu');
